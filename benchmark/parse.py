@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def flatten_comp(true_comp, compdf):
-    for i, item in true_comp.iteritems():
+    for i, item in true_comp.items():
         comp = Composition(item).get_el_amt_dict()
         for k, v in comp.items():
             compdf[k][i] = v
