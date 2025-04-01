@@ -43,7 +43,7 @@ jobs:
         run: isort --profile black ./obelix/ --check-only
 
       - name: Validate import format in benchmark source code
-        run: isort --profile black ./obelix/ --check-only
+        run: isort --profile black ./benchmark/ --check-only
 
       - name: Validate import format in unit test code
         run: isort --profile black ./tests/ --check-only
