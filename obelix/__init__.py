@@ -6,6 +6,8 @@ from pymatgen.core import Structure
 import warnings
 from tqdm import tqdm
 import importlib 
+import re
+
 
 from .utils import round_partial_occ, replace_text_IC
 
@@ -194,52 +196,113 @@ class OBELiX(Dataset):
 
 class LiIon(Dataset):
     '''
-    LiIon dataset class (inherits from Dataset).
+    LiIon dataset class.
+    
+    Attributes:
+        dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./lilon_data"):
+    def __init__(self, data_path="./lilon_data", no_cifs=False, commit_id=None, dev=False):
         '''
-        Downloads and loads the LiIon dataset and initializes it as a Dataset.
+        Loads the LiIon dataset.
         
-        Args:
-            data_path (str): Path where the data will be stored.
         '''
+        
         self.data_path = Path(data_path)
-        self.data_path.mkdir(exist_ok=True)
-
-        self.dataset_url = "https://raw.githubusercontent.com/NRC-Mila/OBELiX/main/data/misc/LiIonDatabase.csv"
         self.data_file = self.data_path / "LiIonDatabase.csv"
-
-        # Download the CSV if not present
+        
+        # Download data if it does not exist
         if not self.data_file.exists():
-            print("Downloading LiIon dataset...")
-            urllib.request.urlretrieve(self.dataset_url, self.data_file)
-            print("Download complete.")
+            self.download_data(self.data_path, commit_id=commit_id, dev=dev)
 
-        # Load dataset
-        df = pd.read_csv(self.data_file)
-
-        # Call the parent Dataset initializer
+        df = self.read_data(self.data_path, no_cifs)
         super().__init__(df)
+    
+    def download_data(self, output_path, commit_id=None, dev=False):
+        output_path = Path(output_path)
+        output_path.mkdir(exist_ok=True)
+        
+        if dev:
+            from git import Repo
+            print("Development mode: cloning the private repository...")
+            Repo.clone_from("git@github.com:NRC-Mila/private-OBELiX.git", output_path)
+        
+        dataset_url = "https://raw.githubusercontent.com/NRC-Mila/OBELiX/main/data/misc/LiIonDatabase.csv"
+        df = pd.read_csv(dataset_url, index_col="ID")
+        df.to_csv(output_path / "LiIonDatabase.csv")
+    
+    def read_data(self, data_path, no_cifs=False):
+        '''Reads the LiIon dataset.'''
+        data_file = data_path / "LiIonDatabase.csv"
+        try:
+            data = pd.read_csv(data_file, index_col="ID")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Dataset file not found at {data_file}. Please check the download path.")
+        
+        return data
 
-    def remove_existing_from_obelix(self, obelix_dataset):
+    def is_same_formula(formula_string1, formula_string2):
+
+        """
+        Compares two formulas to determine if they represent the same composition
+        """
+
+        f1 = re.findall(r"([A-Za-z]{1,2})([0-9\.]*)\s*", formula_string1)
+        f2 = re.findall(r"([A-Za-z]{1,2})([0-9\.]*)\s*", formula_string2)
+
+        if len(f1) != len(f2):
+            return False
+
+        for elem, count in f1:
+            if (elem, count) not in f2:
+                return False
+
+        return True
+
+class Laskowski(Dataset):
+    '''
+    Laskowski dataset class.
+    
+    Attributes:
+        dataframe (pd.DataFrame): DataFrame containing the dataset.
+    '''
+
+    def __init__(self, data_path="./laskowski_data", no_cifs=False, commit_id=None, dev=False):
         '''
-        Removes entries from LiIon dataset that are already present in OBELiX dataset.
-
-        Args:
-            obelix_dataset (OBELiX): An instance of the OBELiX dataset.
-
-        Returns:
-            Dataset: A new Dataset object with filtered data.
+        Loads the Laskowski dataset.
+        
         '''
-        obelix_compositions = obelix_dataset.dataframe["True Composition"].unique()
-        filtered_df = self.dataframe[~self.dataframe["composition"].isin(obelix_compositions)]
-        return Dataset(filtered_df)  # Return as Dataset object
+        
+        self.data_path = Path(data_path)
+        self.data_file = self.data_path / "digitized_data_for_SSEs.csv"
+        
+        # Download data if it does not exist
+        if not self.data_file.exists():
+            self.download_data(self.data_path, commit_id=commit_id, dev=dev)
 
-    def save_filtered(self,  out_file="filtered_LiIonDatabase.csv"):
-        '''
-        Save a filtered Dataset to CSV.
-        '''
-        self.dataframe.to_csv(self.data_path / out_file, index=False)
-
-
+        df = self.read_data(self.data_path, no_cifs)
+        super().__init__(df)
+    
+    def download_data(self, output_path, commit_id=None, dev=False):
+        output_path = Path(output_path)
+        output_path.mkdir(exist_ok=True)
+        
+        if dev:
+            from git import Repo
+            print("Development mode: cloning the private repository...")
+            Repo.clone_from("git@github.com:NRC-Mila/private-OBELiX.git", output_path)
+        
+        dataset_url =  "https://raw.githubusercontent.com/FALL-ML/materials-discovery/blob/main/data/digitized_data_for_SSEs.csv"
+        df = pd.read_csv(dataset_url)
+        df.to_csv(output_path / "digitized_data_for_SSEs.csv")
+    
+    def read_data(self, data_path, no_cifs=False):
+        '''Reads the Laskowski dataset.'''
+        data_file = data_path / "digitized_data_for_SSEs.csv"
+        try:
+            data = pd.read_csv(data_file)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Dataset file not found at {data_file}. Please check the download path.")
+        
+        return data
+    
