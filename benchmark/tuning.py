@@ -1,16 +1,15 @@
 import warnings
 from pathlib import Path
 
-from parse import read_xy
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
+from parse import read_xy
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
 
 np.random.seed(0)
 
