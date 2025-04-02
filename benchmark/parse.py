@@ -1,7 +1,8 @@
+from pathlib import Path
+
 import pandas as pd
 from mendeleev import get_all_elements
 from pymatgen.core import Composition
-from pathlib import Path
 
 
 def flatten_comp(true_comp, compdf):
