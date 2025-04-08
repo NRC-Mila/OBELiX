@@ -9,7 +9,7 @@ import importlib
 import re
 
 
-from .utils import round_partial_occ, replace_text_IC
+from .utils import round_partial_occ, replace_text_IC, is_same_formula
 
 __version__ = importlib.metadata.version("obelix-data")
 
@@ -202,7 +202,7 @@ class LiIon(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./lilon_data", no_cifs=False, commit_id=None, dev=False):
+    def __init__(self, data_path="./lilon_rawdata", no_cifs=False, commit_id=None):
         '''
         Loads the LiIon dataset.
         
@@ -213,51 +213,29 @@ class LiIon(Dataset):
         
         # Download data if it does not exist
         if not self.data_file.exists():
-            self.download_data(self.data_path, commit_id=commit_id, dev=dev)
+            self.download_data(self.data_path, commit_id=commit_id)
 
         df = self.read_data(self.data_path, no_cifs)
         super().__init__(df)
     
-    def download_data(self, output_path, commit_id=None, dev=False):
+    def download_data(self, output_path, commit_id=None, local=False):
         output_path = Path(output_path)
         output_path.mkdir(exist_ok=True)
         
-        if dev:
-            from git import Repo
-            print("Development mode: cloning the private repository...")
-            Repo.clone_from("git@github.com:NRC-Mila/private-OBELiX.git", output_path)
-        
-        dataset_url = "https://raw.githubusercontent.com/NRC-Mila/OBELiX/main/data/misc/LiIonDatabase.csv"
+        if local:
+            dataset_url = "https://raw.githubusercontent.com/NRC-Mila/OBELiX/main/data/misc/LiIonDatabase.csv"
+        else:
+            dataset_url = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
+
         df = pd.read_csv(dataset_url, index_col="ID")
         df.to_csv(output_path / "LiIonDatabase.csv")
     
     def read_data(self, data_path, no_cifs=False):
         '''Reads the LiIon dataset.'''
-        data_file = data_path / "LiIonDatabase.csv"
-        try:
-            data = pd.read_csv(data_file, index_col="ID")
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Dataset file not found at {data_file}. Please check the download path.")
+        data = pd.read_csv(self.data_path / "LiIonDatabase.csv", index_col="ID")
         
         return data
 
-    def is_same_formula(formula_string1, formula_string2):
-
-        """
-        Compares two formulas to determine if they represent the same composition
-        """
-
-        f1 = re.findall(r"([A-Za-z]{1,2})([0-9\.]*)\s*", formula_string1)
-        f2 = re.findall(r"([A-Za-z]{1,2})([0-9\.]*)\s*", formula_string2)
-
-        if len(f1) != len(f2):
-            return False
-
-        for elem, count in f1:
-            if (elem, count) not in f2:
-                return False
-
-        return True
 
 class Laskowski(Dataset):
     '''
@@ -267,7 +245,7 @@ class Laskowski(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./laskowski_data", no_cifs=False, commit_id=None, dev=False):
+    def __init__(self, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None):
         '''
         Loads the Laskowski dataset.
         
@@ -277,32 +255,24 @@ class Laskowski(Dataset):
         self.data_file = self.data_path / "digitized_data_for_SSEs.csv"
         
         # Download data if it does not exist
+
         if not self.data_file.exists():
-            self.download_data(self.data_path, commit_id=commit_id, dev=dev)
+            self.download_data(self.data_path, commit_id=commit_id)
 
         df = self.read_data(self.data_path, no_cifs)
         super().__init__(df)
     
-    def download_data(self, output_path, commit_id=None, dev=False):
+    def download_data(self, output_path, commit_id=None):
         output_path = Path(output_path)
         output_path.mkdir(exist_ok=True)
         
-        if dev:
-            from git import Repo
-            print("Development mode: cloning the private repository...")
-            Repo.clone_from("git@github.com:NRC-Mila/private-OBELiX.git", output_path)
-        
-        dataset_url =  "https://raw.githubusercontent.com/FALL-ML/materials-discovery/blob/main/data/digitized_data_for_SSEs.csv"
+        dataset_url = "https://raw.githubusercontent.com/FALL-ML/materials-discovery/main/data/digitized_data_for_SSEs.csv"
         df = pd.read_csv(dataset_url)
         df.to_csv(output_path / "digitized_data_for_SSEs.csv")
     
     def read_data(self, data_path, no_cifs=False):
         '''Reads the Laskowski dataset.'''
-        data_file = data_path / "digitized_data_for_SSEs.csv"
-        try:
-            data = pd.read_csv(data_file)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Dataset file not found at {data_file}. Please check the download path.")
+        data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv")
         
         return data
     
