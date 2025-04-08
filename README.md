@@ -77,72 +77,7 @@ output_path.mkdir(exist_ok=True)
 for entry in ob.round_partial().with_cifs():
     entry["structure"].to(output_path+entry["ID"]+".cif")
 
-'''
-class LiIon examples
-'''
 
-import re
-import pandas as pd
-from obelix import LiIon, OBELiX, Dataset
-
-ob = OBELiX()
-li = LiIon()
-
-is_same_formula = LiIon.is_same_formula
-
-'''
-Find matching compositions
-'''
-matched_rows = []
-
-for i, li_comp in enumerate(li.dataframe["composition"]):
-    for j, ob_comp in enumerate(ob.dataframe["Reduced Composition"]):
-        if is_same_formula(li_comp, ob_comp):
-            matched_rows.append((li_comp, ob_comp))
-
-matched_comp_df = pd.DataFrame(matched_rows, columns=["LiIon Composition", "OBELiX Reduced Composition"])
-
-'''
-Find matching compositions and DOIs
-'''
-
-matched_rows = []
-
-for i, li_comp in enumerate(li.dataframe["composition"]):
-    li_doi = li.dataframe.iloc[i, li.dataframe.columns.get_loc("source")]  # Get DOI from LiIon dataframe
-
-    for j, ob_comp in enumerate(ob.dataframe["Reduced Composition"]):
-        ob_doi = ob.dataframe.iloc[j, ob.dataframe.columns.get_loc("DOI")]  # Get DOI from OBELiX dataframe
-
-        if is_same_formula(li_comp, ob_comp):  # Check if formulas match
-            if li_doi == ob_doi:  # Check if DOI matches
-                matched_rows.append((li_comp, ob_comp, li_doi, ob_doi))
-            else:
-                print(f"Formula matches but DOI is different: {li_comp} (DOI: {li_doi}) vs {ob_comp} (DOI: {ob_doi})")
-
-matched_comp_doi_df = pd.DataFrame(matched_rows, columns=["LiIon Composition", "OBELiX Reduced Composition", "source", "DOI"])
-
-'''
-Print results
-'''
-print("Number of fully matching compositions:", len(matched_comp_df))
-print(matched_comp_df)
-print("Number of fully matching compositions (including DOI):", len(matched_comp_doi_df))
-print(matched_comp_doi_df)
-
-'''
-Remove matched entries from LiIon
-'''
-li_comp = li.dataframe[~li.dataframe["composition"].isin(matched_comp_df["LiIon Composition"])]
-li_comp_doi = li.dataframe[~li.dataframe["composition"].isin(matched_comp_doi_df["LiIon Composition"])]
-
-'''
-Save the filtered dataset
-'''
-li_comp.to_csv("li_comp.csv", index=False)
-li_comp_doi.to_csv("li_comp_doi.csv", index=False)
-
-```
 ## Labels and Features
 
 | Name | Definition |
@@ -183,5 +118,3 @@ If you use OBELiX, please cite [our paper](https://arxiv.org/abs/2502.14234)
 }
 
 ```
-
-
