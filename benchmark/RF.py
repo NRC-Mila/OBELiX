@@ -1,15 +1,13 @@
-from parse import read_xy
+from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+from parse import read_xy
 from sklearn.ensemble import RandomForestRegressor
-
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_validate
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import GridSearchCV, cross_validate
+from sklearn.preprocessing import StandardScaler
 
 np.random.seed(0)
 
