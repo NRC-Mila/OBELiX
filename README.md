@@ -77,7 +77,6 @@ output_path.mkdir(exist_ok=True)
 for entry in ob.round_partial().with_cifs():
     entry["structure"].to(output_path+entry["ID"]+".cif")
 
-```
 
 ## Labels and Features
 
@@ -119,5 +118,3 @@ If you use OBELiX, please cite [our paper](https://arxiv.org/abs/2502.14234)
 }
 
 ```
-
-

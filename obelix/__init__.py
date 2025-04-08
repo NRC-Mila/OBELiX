@@ -6,8 +6,10 @@ from pymatgen.core import Structure
 import warnings
 from tqdm import tqdm
 import importlib 
+import re
 
-from .utils import round_partial_occ, replace_text_IC
+
+from .utils import round_partial_occ, replace_text_IC, is_same_formula
 
 __version__ = importlib.metadata.version("obelix-data")
 
@@ -190,4 +192,87 @@ class OBELiX(Dataset):
 
         data["structure"] = pd.Series(struc_dict)
         
-        return data          
+        return data    
+
+class LiIon(Dataset):
+    '''
+    LiIon dataset class.
+    
+    Attributes:
+        dataframe (pd.DataFrame): DataFrame containing the dataset.
+    '''
+
+    def __init__(self, data_path="./lilon_rawdata", no_cifs=False, commit_id=None):
+        '''
+        Loads the LiIon dataset.
+        
+        '''
+        
+        self.data_path = Path(data_path)
+        self.data_file = self.data_path / "LiIonDatabase.csv"
+        
+        # Download data if it does not exist
+        if not self.data_file.exists():
+            self.download_data(self.data_path, commit_id=commit_id)
+
+        df = self.read_data(self.data_path, no_cifs)
+        super().__init__(df)
+    
+    def download_data(self, output_path, commit_id=None, local=False):
+        output_path = Path(output_path)
+        output_path.mkdir(exist_ok=True)
+        
+        if local:
+            dataset_url = "https://raw.githubusercontent.com/NRC-Mila/OBELiX/main/data/misc/LiIonDatabase.csv"
+        else:
+            dataset_url = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
+
+        df = pd.read_csv(dataset_url, index_col="ID")
+        df.to_csv(output_path / "LiIonDatabase.csv")
+    
+    def read_data(self, data_path, no_cifs=False):
+        '''Reads the LiIon dataset.'''
+        data = pd.read_csv(self.data_path / "LiIonDatabase.csv", index_col="ID")
+        
+        return data
+
+
+class Laskowski(Dataset):
+    '''
+    Laskowski dataset class.
+    
+    Attributes:
+        dataframe (pd.DataFrame): DataFrame containing the dataset.
+    '''
+
+    def __init__(self, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None):
+        '''
+        Loads the Laskowski dataset.
+        
+        '''
+        
+        self.data_path = Path(data_path)
+        self.data_file = self.data_path / "digitized_data_for_SSEs.csv"
+        
+        # Download data if it does not exist
+
+        if not self.data_file.exists():
+            self.download_data(self.data_path, commit_id=commit_id)
+
+        df = self.read_data(self.data_path, no_cifs)
+        super().__init__(df)
+    
+    def download_data(self, output_path, commit_id=None):
+        output_path = Path(output_path)
+        output_path.mkdir(exist_ok=True)
+        
+        dataset_url = "https://raw.githubusercontent.com/FALL-ML/materials-discovery/main/data/digitized_data_for_SSEs.csv"
+        df = pd.read_csv(dataset_url)
+        df.to_csv(output_path / "digitized_data_for_SSEs.csv")
+    
+    def read_data(self, data_path, no_cifs=False):
+        '''Reads the Laskowski dataset.'''
+        data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv")
+        
+        return data
+    
