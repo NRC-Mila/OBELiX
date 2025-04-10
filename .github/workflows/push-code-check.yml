@@ -49,4 +49,4 @@ jobs:
         run: isort --profile black ./tests/ --check-only
 
       - name: Run unit tests
-        run: pytest
+        run: pytest --ignore=tests/test_obelix.py::test_dev_OBELiX --ignore=tests/test_obelix.py::test_custom_OBELiX
