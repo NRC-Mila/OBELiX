@@ -275,4 +275,28 @@ class Laskowski(Dataset):
         data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv")
         
         return data
+
+class ShonAndMin(Dataset):
+    '''
+    Shon and Min dataset class.
+    
+    Attributes:
+        dataframe (pd.DataFrame): DataFrame containing the dataset.
+    '''
+
+    def __init__(self, data_path="/home/leah/leah---OBELiX/data/Shon_and_Min.xlsx"):
+        '''
+        Loads the Shon and Min dataset from an Excel file.
+        '''
+        self.data_path = Path(data_path)
+        df = self.read_data(self.data_path)
+        super().__init__(df)
+        self.dataframe = df
+    
+    def read_data(self, data_path):
+        '''Reads the Shon and Min dataset.'''
+        data = pd.read_excel(data_path)
+        return data
+
+
     
