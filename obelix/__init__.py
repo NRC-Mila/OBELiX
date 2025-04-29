@@ -7,9 +7,12 @@ import warnings
 from tqdm import tqdm
 import importlib 
 import re
-
+import numpy as np
 
 from .utils import round_partial_occ, replace_text_IC, is_same_formula
+
+from .shon_min import normalize_string, convert_scientific_string, convert_to_S_cm, is_valid_formula
+
 
 __version__ = importlib.metadata.version("obelix-data")
 
@@ -231,10 +234,26 @@ class LiIon(Dataset):
         df.to_csv(output_path / "LiIonDatabase.csv")
     
     def read_data(self, data_path, no_cifs=False):
-        '''Reads the LiIon dataset.'''
+        '''Reads the LiIon dataset and filters for room temperature.'''
         data = pd.read_csv(self.data_path / "LiIonDatabase.csv", index_col="ID")
-        
+
+        # Filter for temperatures within room temperature range
+        room_temp = 25
+        tolerance = 7
+        temp_min = room_temp - tolerance
+        temp_max = room_temp + tolerance
+
+        # Keep rows where 'temperature' is within [temp_min, temp_max]
+        if "temperature" in data.columns:
+            data = data[(data["temperature"] >= temp_min) & (data["temperature"] <= temp_max)]
+
         return data
+
+   # def read_data(self, data_path, no_cifs=False):
+   #     '''Reads the LiIon dataset.'''
+   #     data = pd.read_csv(self.data_path / "LiIonDatabase.csv", index_col="ID")
+        
+   #     return data
 
 
 class Laskowski(Dataset):
@@ -279,24 +298,120 @@ class Laskowski(Dataset):
 class ShonAndMin(Dataset):
     '''
     Shon and Min dataset class.
-    
+
     Attributes:
-        dataframe (pd.DataFrame): DataFrame containing the dataset.
+        dataframe (pd.DataFrame): Cleaned DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="/home/leah/leah---OBELiX/data/Shon_and_Min.xlsx"):
+    def __init__(self, data_path="./SM_rawdata"):
         '''
-        Loads the Shon and Min dataset from an Excel file.
+        Loads and cleans the Shon and Min dataset from Sheet2.
         '''
         self.data_path = Path(data_path)
-        df = self.read_data(self.data_path)
-        super().__init__(df)
-        self.dataframe = df
-    
-    def read_data(self, data_path):
-        '''Reads the Shon and Min dataset.'''
-        data = pd.read_excel(data_path)
+        self.data_path.mkdir(parents=True, exist_ok=True)
+
+        self.source_file = Path("/home/leah/leah---OBELiX/data/ao3c01424_si_001.xlsx")
+
+        raw_df = self.read_data(self.source_file, sheet_name="Sheet2")
+
+        cleaned_df = self._clean_data(raw_df)
+
+        super().__init__(cleaned_df)
+
+    def read_data(self, file_path, sheet_name=None):
+        '''Reads specified sheet from the Excel file.'''
+        data = pd.read_excel(file_path, sheet_name=sheet_name)
         return data
 
+    def _clean_data(self, df):
+        '''Processes and cleans the raw dataframe.'''
 
-    
+        df["Ionic Conductivity"] = df["Ionic Conductivity"].apply(normalize_string)
+
+        df["Ionic Conductivity Numeric"] = df["Ionic Conductivity"].apply(convert_scientific_string)
+
+        df["Ionic Conductivity Numeric (S/cm)"] = df.apply(
+            lambda r: convert_to_S_cm(r.get("Raw_unit", ""), r["Ionic Conductivity Numeric"]),
+            axis=1
+        )
+
+        to_drop = []
+        for idx, row in df.iterrows():
+            cond = row["Ionic Conductivity Numeric (S/cm)"]
+            if pd.isna(cond) or cond <= 0 or not (-18 <= np.log10(cond) <= 0):
+                to_drop.append(idx)
+                continue
+            name = row.get("Name", "")
+            if pd.isna(name) or not is_valid_formula(name):
+                to_drop.append(idx)
+                continue
+
+        df_clean = df.drop(index=to_drop).reset_index(drop=True)
+
+        df_clean["log_target"] = np.log10(df_clean["Ionic Conductivity Numeric (S/cm)"])
+
+        return df_clean
+
+def remove_obelix(OBELiX, LiIon, Laskowski):
+    """
+    Removes entries from LiIon and Laskowski datasets that are already present in OBELiX based on 
+    LiIon ID and Laskowski ID.
+
+    Args:
+        OBELiX: An object with a .dataframe attribute containing 'LiIon ID', 'Laskowski ID', and 'Reduced Composition' columns.
+        LiIon: An object with a .dataframe attribute containing 'composition' column.
+        Laskowski: An object with a .dataframe attribute containing 'Structure' column.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: Filtered versions of LiIon and Laskowski dataframes.
+    """
+    ob = OBELiX()  
+    li = LiIon()   
+    la = Laskowski()  
+
+    obelix_liion_ids = ob.dataframe['Liion ID'].dropna().unique()
+    obelix_laskowski_ids = ob.dataframe['Laskowski ID'].dropna().unique()
+
+    filtered_obelix_liion = ob.dataframe[ob.dataframe['Liion ID'].isin(obelix_liion_ids)]
+    reduced_compositions_liion = filtered_obelix_liion['Reduced Composition'].dropna().unique()
+
+    filtered_liion = li.dataframe[~li.dataframe['composition'].isin(reduced_compositions_liion)]
+
+    filtered_obelix_laskowski = ob.dataframe[ob.dataframe['Laskowski ID'].isin(obelix_laskowski_ids)]
+    reduced_compositions_laskowski = filtered_obelix_laskowski['Reduced Composition'].dropna().unique()
+
+    filtered_laskowski = la.dataframe[~la.dataframe['Structure'].isin(reduced_compositions_laskowski)]
+
+    return filtered_liion, filtered_laskowski
+
+def get_unique_compositions(OBELiX, LiIon, Laskowski, ShonAndMin):
+    """
+    Combines composition-related columns from OBELiX, LiIon, Laskowski, and ShonAndMin datasets into a single list,
+    removing duplicates.
+
+    Args:
+        OBELiX: An object with a .dataframe attribute containing 'Reduced Composition'.
+        LiIon: An object with a .dataframe attribute containing 'composition'.
+        Laskowski: An object with a .dataframe attribute containing 'Structure'.
+        ShonAndMin: An object with a .dataframe attribute containing 'Name'.
+
+    Returns:
+        pd.Series: A sorted list of unique composition entries across all datasets.
+    """
+    ob = OBELiX()
+    li = LiIon()
+    la = Laskowski()
+    sm = ShonAndMin()
+
+    ob_compositions = ob.dataframe['Reduced Composition'].dropna()
+    li_compositions = li.dataframe['composition'].dropna()
+    la_compositions = la.dataframe['Structure'].dropna()
+    sm_compositions = sm.dataframe['Name'].dropna()
+
+    all_compositions = pd.concat([ob_compositions, li_compositions, la_compositions, sm_compositions]).drop_duplicates()
+
+    return all_compositions.sort_values().reset_index(drop=True)
+
+
+
+
