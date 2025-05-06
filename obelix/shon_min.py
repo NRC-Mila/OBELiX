@@ -113,44 +113,28 @@ def is_valid_formula(formula: str) -> bool:
     except Exception:
         return False
 
-# Main processing pipeline
-def main(input_xlsx: str = "ao3c01424_si_001.xlsx",
-         output_xlsx: str = "Shon_and_Min.xlsx"):
-    # 1) Load raw data
-    df = pd.read_excel(input_xlsx, sheet_name="Sheet2")
-
-    # 2) Parse ionic conductivity strings
+def clean_shon_min(df):
+    # 1) Parse ionic conductivity strings
     df["Ionic Conductivity Numeric"] = df["Ionic Conductivity"].apply(convert_scientific_string)
 
-    # 3) Convert to standard units (S/cm)
+    # 2) Convert to standard units (S/cm)
     df["Ionic Conductivity Numeric (S/cm)"] = df.apply(
         lambda r: convert_to_S_cm(r.get("Raw_unit", ""), r["Ionic Conductivity Numeric"]),
         axis=1
     )
 
-    # 4) Validate & filter rows
+    # 3) Validate & filter rows
     to_drop = []
     for idx, row in df.iterrows():
         cond = row["Ionic Conductivity Numeric (S/cm)"]
-        # must be positive and log10 in [-18, 0]
         if pd.isna(cond) or cond <= 0 or not (-18 <= np.log10(cond) <= 0):
             to_drop.append(idx)
             continue
-        # must have a valid formula
         name = row.get("Name", "")
         if pd.isna(name) or not is_valid_formula(name):
             to_drop.append(idx)
             continue
 
-    df_clean = df.drop(index=to_drop).reset_index(drop=True)
+    df_clean = df.drop(index=to_drop)
+    return df_clean
 
-    # 5) Compute log10 target
-    df_clean["log_target"] = np.log10(df_clean["Ionic Conductivity Numeric (S/cm)"])
-
-    # 6) Save result
-    df_clean.to_excel(output_xlsx, index=False)
-    print(f"Done! Cleaned data saved to '{output_xlsx}' "
-          f"({len(df_clean)} rows, dropped {len(to_drop)} invalid rows).")
-
-if __name__ == "__main__":
-    main()
