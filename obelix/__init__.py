@@ -32,10 +32,11 @@ class Dataset():
 
     '''
     
-    def __init__(self, dataframe):
+    def __init__(self, dataframe, *datasets):
         self.dataframe = dataframe
         self.entries = list(self.dataframe.index)
         self.labels = list(self.dataframe.keys())
+        self.datasets = datasets
         
     def __len__(self):
         return len(self.dataframe)
@@ -77,7 +78,15 @@ class Dataset():
                 structures.append(None)
         return Dataset(self.dataframe.assign(structure=structures))
 
+    def merge_datasets(*datasets):
+        cols = ['Reduced Composition', 'Ionic conductivity (S cm-1)']
+        dfs = []
+        for ds in datasets:
+            dfs.append(ds.dataframe[cols])
 
+        combined = pd.concat(dfs, ignore_index=True).drop_duplicates()
+        return combined
+        
 class OBELiX(Dataset):
     '''
     OBELiX dataset class.
@@ -89,8 +98,7 @@ class OBELiX(Dataset):
         entries (list): List of entries.
     '''
 
-    def __init__(self, data_path="./rawdata", no_cifs=False, commit_id=f"v{__version__}-data", dev=False, unspecified_low_value=1e-15, 
-                 rename_columns=True):
+    def __init__(self, data_path="./rawdata", no_cifs=False, commit_id=f"v{__version__}-data", dev=False, unspecified_low_value=1e-15):
         '''
         Loads the OBELiX dataset.
         
@@ -108,14 +116,8 @@ class OBELiX(Dataset):
 
         df = self.read_data(self.data_path, no_cifs)
 
-        if rename_columns:
-            df = df.rename(columns={
-                'Ionic conductivity (S cm-1)': 'Ionic Conductivity',
-                'Reduced Composition': 'composition'
-            })
-
         if unspecified_low_value is not None:
-            df["Ionic Conductivity"] = df["Ionic Conductivity"].apply(replace_text_IC, args=(unspecified_low_value,))
+            df["Ionic conductivity (S cm-1)"] = df["Ionic conductivity (S cm-1)"].apply(replace_text_IC, args=(unspecified_low_value,))
             
         super().__init__(df)
 
@@ -211,7 +213,7 @@ class LiIon(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./lilon_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
+    def __init__(self, obelix_object, data_path="./lilon_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
         '''
         Loads the LiIon dataset.
         
@@ -227,10 +229,10 @@ class LiIon(Dataset):
         df = self.read_data(self.data_path, no_cifs)
         
         if rename_columns:
-            df = df.rename(columns={'target': 'Ionic Conductivity'
+            df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition'
             })
 
-
+        df = self.remove_obelix(obelix_object, df)
         super().__init__(df)
     
     def download_data(self, output_path, commit_id=None, local=False):
@@ -262,7 +264,7 @@ class LiIon(Dataset):
 
          return data
 
-    def  remove_obelix(self, obelix_object):
+    def  remove_obelix(self, obelix_object, df):
          """
          Removes entries from the LiIon dataset that are present in OBELiX,
          using 'composition' matched against 'Reduced Composition' only for rows with 'Liion ID'.
@@ -270,11 +272,11 @@ class LiIon(Dataset):
          ob_df = obelix_object.dataframe
          filtered_obelix = ob_df[ob_df['Liion ID'].notna()]
          compositions_to_remove = filtered_obelix['Reduced Composition'].dropna().unique()
-
-         self.dataframe = self.dataframe[~self.dataframe['composition'].isin(compositions_to_remove)]
-         return self.dataframe
-
+         
+         
+         return df[~df['Reduced Composition'].isin(compositions_to_remove)]
     
+
 class Laskowski(Dataset):
     '''
     Laskowski dataset class.
@@ -283,7 +285,7 @@ class Laskowski(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
+    def __init__(self, obelix_object, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
         '''
         Loads the Laskowski dataset.
         
@@ -301,9 +303,10 @@ class Laskowski(Dataset):
 
         if rename_columns:
             df = df.rename(columns={
-                'σ(RT)(S cm-1)': 'Ionic Conductivity',
-                'Structure': 'composition'
+                'σ(RT)(S cm-1)': 'Ionic conductivity (S cm-1)',
+                'Structure': 'Reduced Composition'
             })
+        df = self.remove_obelix(obelix_object, df)
 
         super().__init__(df)
     
@@ -321,7 +324,7 @@ class Laskowski(Dataset):
         
         return data
     
-    def remove_obelix(self, obelix_object):
+    def remove_obelix(self, obelix_object, df):
         """
         Removes entries from the Laskowski dataset that are present in OBELiX,
         using 'Structure' matched against 'Reduced Composition' only for rows with 'Laskowski ID'.
@@ -330,8 +333,8 @@ class Laskowski(Dataset):
         filtered_obelix = ob_df[ob_df['Laskowski ID'].notna()]
         structures_to_remove = filtered_obelix['Reduced Composition'].dropna().unique()
 
-        self.dataframe = self.dataframe[~self.dataframe['Structure'].isin(structures_to_remove)]
-        return self.dataframe
+        
+        return df[~df['Reduced Composition'].isin(structures_to_remove)]
 
 class ShonAndMin(Dataset):
     def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, rename_columns=True):
@@ -351,7 +354,7 @@ class ShonAndMin(Dataset):
             df = clean_shon_min(df)
 
         if rename_columns:
-            df = df.rename(columns={'Name': 'composition'
+            df = df.rename(columns={'Name': 'Reduced Composition', 'Ionic Conductivity':'Ionic conductivity (S cm-1)'
             })
 
         super().__init__(df)
@@ -367,26 +370,5 @@ class ShonAndMin(Dataset):
     def read_data(self, data_path, no_cifs=False):
         '''Reads the ShonAndMin dataset.'''
         return pd.read_csv(data_path / "sheet2.csv") 
-
-
-def add_datasets(*datasets):
-    """
-    Combines multiple datasets based on 'Composition' and 'Ionic Conductivity' columns.
-    Accepts any number of Dataset objects and returns a new Dataset with duplicates removed.
-    """
-    cols = ['Composition', 'Ionic Conductivity']
-    dfs = []
-
-    for ds in datasets:
-        df = ds.dataframe.loc[:, ds.dataframe.columns.intersection(cols)]
-        dfs.append(df)
-
-    combined_df = pd.concat(dfs, ignore_index=True).drop_duplicates()
-    return Dataset(combined_df)
-
-
-
-
-
 
 
