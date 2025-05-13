@@ -213,7 +213,7 @@ class LiIon(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, obelix_object, data_path="./lilon_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
+    def __init__(self, data_path="./lilon_rawdata", no_cifs=False, commit_id=None):
         '''
         Loads the LiIon dataset.
         
@@ -227,12 +227,7 @@ class LiIon(Dataset):
             self.download_data(self.data_path, commit_id=commit_id)
 
         df = self.read_data(self.data_path, no_cifs)
-        
-        if rename_columns:
-            df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition'
-            })
 
-        df = self.remove_obelix(obelix_object, df)
         super().__init__(df)
     
     def download_data(self, output_path, commit_id=None, local=False):
@@ -244,12 +239,17 @@ class LiIon(Dataset):
         else:
             dataset_url = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
 
-        df = pd.read_csv(dataset_url, index_col="ID")
-        df.to_csv(output_path / "LiIonDatabase.csv")
+        df = pd.read_csv(dataset_url)
+        df.to_csv(output_path / "LiIonDatabase.csv", header=2)
     
-    def  read_data(self, data_path, no_cifs=False, room_temp_only=True):
+    def  read_data(self, data_path, no_cifs=False, rename_columns=True, room_temp_only=True):
          '''Reads the LiIon dataset and optionally filters for room temperature.'''
-         data = pd.read_csv(self.data_path / "LiIonDatabase.csv", index_col="ID")
+         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2)
+
+
+         if rename_columns:
+            df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition'})
+
 
          if room_temp_only:
             # Filter for temperatures within room temperature range
@@ -259,12 +259,13 @@ class LiIon(Dataset):
             temp_max = room_temp + tolerance
 
             # Keep rows where 'temperature' is within [temp_min, temp_max]
-            if "temperature" in data.columns:
-                data = data[(data["temperature"] >= temp_min) & (data["temperature"] <= temp_max)]
+            if "temperature" in df.columns:
+                df = df[(df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)]
 
-         return data
+         return df
 
-    def  remove_obelix(self, obelix_object, df):
+
+    def  remove_obelix(self, obelix_object):
          """
          Removes entries from the LiIon dataset that are present in OBELiX,
          using 'composition' matched against 'Reduced Composition' only for rows with 'Liion ID'.
@@ -272,9 +273,10 @@ class LiIon(Dataset):
          ob_df = obelix_object.dataframe
          filtered_obelix = ob_df[ob_df['Liion ID'].notna()]
          compositions_to_remove = filtered_obelix['Reduced Composition'].dropna().unique()
-         
-         
-         return df[~df['Reduced Composition'].isin(compositions_to_remove)]
+
+         self.dataframe = self.dataframe[~self.dataframe['Reduced Composition'].isin(compositions_to_remove)]
+         return self.dataframe
+
     
 
 class Laskowski(Dataset):
@@ -285,7 +287,7 @@ class Laskowski(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, obelix_object, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
+    def __init__(self, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None, rename_columns=True):
         '''
         Loads the Laskowski dataset.
         
@@ -306,7 +308,6 @@ class Laskowski(Dataset):
                 'σ(RT)(S cm-1)': 'Ionic conductivity (S cm-1)',
                 'Structure': 'Reduced Composition'
             })
-        df = self.remove_obelix(obelix_object, df)
 
         super().__init__(df)
     
@@ -324,7 +325,7 @@ class Laskowski(Dataset):
         
         return data
     
-    def remove_obelix(self, obelix_object, df):
+    def remove_obelix(self, obelix_object):
         """
         Removes entries from the Laskowski dataset that are present in OBELiX,
         using 'Structure' matched against 'Reduced Composition' only for rows with 'Laskowski ID'.
@@ -333,8 +334,9 @@ class Laskowski(Dataset):
         filtered_obelix = ob_df[ob_df['Laskowski ID'].notna()]
         structures_to_remove = filtered_obelix['Reduced Composition'].dropna().unique()
 
-        
-        return df[~df['Reduced Composition'].isin(structures_to_remove)]
+        self.dataframe = self.dataframe[~self.dataframe['Reduced Composition'].isin(structures_to_remove)]
+        return self.dataframe
+
 
 class ShonAndMin(Dataset):
     def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, rename_columns=True):
