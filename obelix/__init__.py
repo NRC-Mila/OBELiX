@@ -78,15 +78,20 @@ class Dataset():
                 structures.append(None)
         return Dataset(self.dataframe.assign(structure=structures))
 
-    def merge_datasets(*datasets):
-        cols = ['Reduced Composition', 'Ionic conductivity (S cm-1)']
+    def merge_datasets(*datasets, remove_duplicates=True):
         dfs = []
         for ds in datasets:
-            dfs.append(ds.dataframe[cols])
+        # Keep only columns with no missing values in that dataset
+            df_clean = ds.dataframe.dropna(axis=1)
+            dfs.append(df_clean)
 
-        combined = pd.concat(dfs, ignore_index=True).drop_duplicates()
+        combined = pd.concat(dfs, ignore_index=True)
+
+        if remove_duplicates:
+            combined = combined.drop_duplicates(subset = ['Reduced Composition', 'Ionic conductivity (S cm-1)'])
+
         return combined
-        
+
 class OBELiX(Dataset):
     '''
     OBELiX dataset class.
@@ -213,7 +218,7 @@ class LiIon(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./lilon_rawdata", no_cifs=False, commit_id=None):
+    def __init__(self, data_path="./lilon_rawdata", no_cifs=False, commit_id=None, rename_columns=True, room_temp_only=True):
         '''
         Loads the LiIon dataset.
         
@@ -228,6 +233,21 @@ class LiIon(Dataset):
 
         df = self.read_data(self.data_path, no_cifs)
 
+        if rename_columns:
+            df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition', 'source' : 'DOI'})
+
+
+        if room_temp_only:
+            # Filter for temperatures within room temperature range
+            room_temp = 25
+            tolerance = 7
+            temp_min = room_temp - tolerance
+            temp_max = room_temp + tolerance
+
+            # Keep rows where 'temperature' is within [temp_min, temp_max]
+            if "temperature" in df.columns:
+                df = df[(df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)]
+
         super().__init__(df)
     
     def download_data(self, output_path, commit_id=None, local=False):
@@ -240,27 +260,11 @@ class LiIon(Dataset):
             dataset_url = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
 
         df = pd.read_csv(dataset_url)
-        df.to_csv(output_path / "LiIonDatabase.csv", header=2)
+        df.to_csv(output_path / "LiIonDatabase.csv", header=2, index_col=0)
     
-    def  read_data(self, data_path, no_cifs=False, rename_columns=True, room_temp_only=True):
+    def  read_data(self, data_path, no_cifs=False):
          '''Reads the LiIon dataset and optionally filters for room temperature.'''
-         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2)
-
-
-         if rename_columns:
-            df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition'})
-
-
-         if room_temp_only:
-            # Filter for temperatures within room temperature range
-            room_temp = 25
-            tolerance = 7
-            temp_min = room_temp - tolerance
-            temp_max = room_temp + tolerance
-
-            # Keep rows where 'temperature' is within [temp_min, temp_max]
-            if "temperature" in df.columns:
-                df = df[(df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)]
+         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2, index_col=0)
 
          return df
 
@@ -317,11 +321,11 @@ class Laskowski(Dataset):
         
         dataset_url = "https://raw.githubusercontent.com/FALL-ML/materials-discovery/main/data/digitized_data_for_SSEs.csv"
         df = pd.read_csv(dataset_url)
-        df.to_csv(output_path / "digitized_data_for_SSEs.csv")
+        df.to_csv(output_path / "digitized_data_for_SSEs.csv", index_col=0)
     
     def read_data(self, data_path, no_cifs=False):
         '''Reads the Laskowski dataset.'''
-        data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv")
+        data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv", index_col=0)
         
         return data
     
@@ -367,10 +371,10 @@ class ShonAndMin(Dataset):
 
         dataset_url = "https://raw.githubusercontent.com/leah-mungai/leah---OBELiX/new_taset_classes/data/ao3c01424_si_001.xlsx"
         df = pd.read_excel(dataset_url, sheet_name="Sheet2")  
-        df.to_csv(output_path / "sheet2.csv", index=False)
+        df.to_csv(output_path / "sheet2.csv", index_col=0)
 
     def read_data(self, data_path, no_cifs=False):
         '''Reads the ShonAndMin dataset.'''
-        return pd.read_csv(data_path / "sheet2.csv") 
+        return pd.read_csv(data_path / "sheet2.csv", index_col=0) 
 
 
