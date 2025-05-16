@@ -103,7 +103,7 @@ for entry in ob.round_partial().with_cifs():
 | `close match` | Whether the cif file comes from a closely matching structure or from the actual publication (DOI). If a close match this field will read "Yes"
 | `close match DOI` | Digital object identifier of the publication from which the CIF was taken|
 | `ICSD ID` | Inorganic Crystal Structure Database ID of the structure if it can be found in that database |
-| `Laskowski ID` | Entry number (in order of appearance) in the supplementary information of [Forrest A. L. Laskowski et al., Energy Environ. Sci., 16, 1264 (2023)](https://pubs.rsc.org/en/content/articlelanding/2023/ee/d2ee03499a#!) if the entry is also in that database|
+| `Laskowski ID` | Reference (citation) number in the pdf supplementary information of [Forrest A. L. Laskowski et al., Energy Environ. Sci., 16, 1264 (2023)](https://pubs.rsc.org/en/content/articlelanding/2023/ee/d2ee03499a#!) if the entry is also in that database. Entries are not numbered so it is easier to identify them that way. Multiple entries can come from the same reference; use the composition to identify the exact entry.|
 | `Liion ID` | Entry number in the [The Liverpool Ionics Dataset](http://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.html) if the entry is also in that database|
 
 ## Citation
