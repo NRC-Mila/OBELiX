@@ -2,7 +2,7 @@
 
 OBELiX (<ins>O</ins>pen solid <ins>B</ins>attery <ins>E</ins>lectrolytes with <ins>Li</ins>: an e<ins>X</ins>perimental dataset) is a dataset of 599 synthesized solid electrolyte materials and their **experimentally measured room temperature ionic conductivity** along with descriptors of their space group, lattice parameters, and chemical composition. It contains full crystallographic description in the form of CIF files for 321 entries. 
 
-A full description an analysis can be found in [our paper](https://arxiv.org/abs/2502.14234)
+A full description an analysis can be found in [our paper](https://arxiv.org/abs/2502.14234). The dataset is also available on [Kaggle](https://www.kaggle.com/datasets/flixtherrien/obelix).
 
 <h1 align="center">
 <img src="https://raw.githubusercontent.com/NRC-Mila/OBELiX/main/paper/figures/gathered.svg">
