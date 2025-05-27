@@ -13,6 +13,8 @@ from .utils import round_partial_occ, replace_text_IC, is_same_formula
 
 from .shon_min import clean_shon_min
 
+from .preprocessing import get_paper_from_laskowski
+
 __version__ = importlib.metadata.version("obelix-data")
 
 class Dataset():
@@ -263,7 +265,7 @@ class LiIon(Dataset):
         df.to_csv(output_path / "LiIonDatabase.csv", header=2, index_col=0)
     
     def  read_data(self, data_path, no_cifs=False):
-         '''Reads the LiIon dataset and optionally filters for room temperature.'''
+         '''Reads the LiIon dataset.'''
          df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2, index_col=0)
 
          return df
@@ -271,17 +273,16 @@ class LiIon(Dataset):
 
     def  remove_obelix(self, obelix_object):
          """
-         Removes entries from the LiIon dataset that are present in OBELiX,
-         using 'composition' matched against 'Reduced Composition' only for rows with 'Liion ID'.
+         Removes entries from the LiIon dataset that are present in OBELiX.
          """
+
          ob_df = obelix_object.dataframe
-         filtered_obelix = ob_df[ob_df['Liion ID'].notna()]
-         compositions_to_remove = filtered_obelix['Reduced Composition'].dropna().unique()
+         liion_ids = ob_df["Liion ID"].dropna().astype(int)
 
-         self.dataframe = self.dataframe[~self.dataframe['Reduced Composition'].isin(compositions_to_remove)]
-         return self.dataframe
+         liion_ids = liion_ids[liion_ids < len(self.dataframe)]
 
-    
+         rows_to_drop = self.dataframe.iloc[liion_ids]
+         return self.dataframe.drop(index=rows_to_drop.index)
 
 class Laskowski(Dataset):
     '''
@@ -328,19 +329,49 @@ class Laskowski(Dataset):
         data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv", index_col=0)
         
         return data
+
+
+    def add_DOIs(self, laskowski_data_path, doi_lookup_table_path):
+        """
+        Matches DOIs from the Laskowski dataset to the digitized data and saves the result.
+
+        Parameters:
+            laskowski_data_path (str): Path to the Laskowski semi-formatted CSV.
+            doi_lookup_table_path (str): Path to the DOI lookup CSV.
+
+        Returns:
+            pd.DataFrame: The updated DataFrame with a new 'Matched DOIs' column.
+        """
+
+        # Load data
+        laskowski_data = np.genfromtxt(laskowski_data_path, delimiter=",", dtype=str)
+        doi_lookup_raw = np.genfromtxt(doi_lookup_table_path, delimiter=",", dtype=str, skip_header=1)
+        doi_lookup_table = dict(doi_lookup_raw)
+
+        matched_dois_list = []
+
+        for idx, row in self.dataframe.iterrows():
+            composition = row['Reduced Composition']
+            ionic_cond = row['Ionic conductivity (S cm-1)']
+            matched_dois, _ = get_paper_from_laskowski(composition, ionic_cond, laskowski_data, doi_lookup_table)
+            matched_str = "; ".join(matched_dois) if matched_dois else ""
+            matched_dois_list.append(matched_str)
+
+        # Add the DOIs column to the DataFrame
+        self.dataframe["Matched DOIs"] = matched_dois_list
+
+        return self.dataframe
+
     
     def remove_obelix(self, obelix_object):
         """
-        Removes entries from the Laskowski dataset that are present in OBELiX,
-        using 'Structure' matched against 'Reduced Composition' only for rows with 'Laskowski ID'.
+        Removes entries from the Laskowski dataset that are present in OBELiX.
         """
-        ob_df = obelix_object.dataframe
-        filtered_obelix = ob_df[ob_df['Laskowski ID'].notna()]
-        structures_to_remove = filtered_obelix['Reduced Composition'].dropna().unique()
-
-        self.dataframe = self.dataframe[~self.dataframe['Reduced Composition'].isin(structures_to_remove)]
-        return self.dataframe
-
+        ob_df = obelix_object.dataframe  
+        laskowski_ids = ob_df["Laskowski ID"].dropna().astype(int)
+        rows_to_drop = self.dataframe.iloc[laskowski_ids]
+        return self.dataframe.drop(index=rows_to_drop.index)
+    
 
 class ShonAndMin(Dataset):
     def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, rename_columns=True):
@@ -376,5 +407,7 @@ class ShonAndMin(Dataset):
     def read_data(self, data_path, no_cifs=False):
         '''Reads the ShonAndMin dataset.'''
         return pd.read_csv(data_path / "sheet2.csv", index_col=0) 
+
+
 
 
