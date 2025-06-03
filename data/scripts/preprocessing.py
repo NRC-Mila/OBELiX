@@ -3,6 +3,9 @@ import re
 import pandas as pd
 import argparse
 import unicodedata
+from pymatgen.core import Composition
+
+
 
 def read_options():
 
@@ -26,9 +29,17 @@ def is_same_formula(formula_string1, formula_string2):
 
 def remove_overlines(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
-    out_str =  u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
-    return out_str.replace("−", "-")
+    out_str = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    out_str = out_str.replace("−", "-")
     
+    # Convert exponents like E-9 to E-09
+    out_str = re.sub(r'([Ee][\+\-])(\d)(?!\d)', r'\g<1>0\2', out_str)
+   
+    # Format mantissas to have two decimal places if missing: 3.2E-03 → 3.20E-03
+    out_str = re.sub(r'^(\d+\.\d)([Ee][\+\-]\d\d)$', lambda m: f"{float(m.group(1)):.2f}{m.group(2)}", out_str)
+
+    return out_str
+
 def get_paper_from_laskowski(material, cond, laskowski_data, doi_lookup_table, return_idx=False):
     paper_dois = []
     potential_matches = []
@@ -39,6 +50,7 @@ def get_paper_from_laskowski(material, cond, laskowski_data, doi_lookup_table, r
             paper_material + laskowski_data[min(j+2, laskowski_data.shape[0]-1),0] == material):
 
             cond_mat = remove_overlines(laskowski_data[j,1])
+            
 
             if cond_mat == "":
                 cond_mat = remove_overlines(laskowski_data[j+1,1])
