@@ -13,8 +13,6 @@ from .utils import round_partial_occ, replace_text_IC, is_same_formula
 
 from .shon_min import clean_shon_min
 
-from .preprocessing import get_paper_from_laskowski
-
 __version__ = importlib.metadata.version("obelix-data")
 
 class Dataset():
@@ -262,11 +260,12 @@ class LiIon(Dataset):
             dataset_url = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
 
         df = pd.read_csv(dataset_url)
-        df.to_csv(output_path / "LiIonDatabase.csv", header=2, index_col=0)
+        df.to_csv(output_path / "LiIonDatabase.csv", header=2)
+        
     
     def  read_data(self, data_path, no_cifs=False):
          '''Reads the LiIon dataset.'''
-         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2, index_col=0)
+         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2)
 
          return df
 
@@ -278,11 +277,9 @@ class LiIon(Dataset):
 
          ob_df = obelix_object.dataframe
          liion_ids = ob_df["Liion ID"].dropna().astype(int)
+         return self.dataframe.drop(index=liion_ids, errors="ignore")
 
-         liion_ids = liion_ids[liion_ids < len(self.dataframe)]
 
-         rows_to_drop = self.dataframe.iloc[liion_ids]
-         return self.dataframe.drop(index=rows_to_drop.index)
 
 class Laskowski(Dataset):
     '''
@@ -299,7 +296,7 @@ class Laskowski(Dataset):
         '''
         
         self.data_path = Path(data_path)
-        self.data_file = self.data_path / "digitized_data_for_SSEs.csv"
+        self.data_file = self.data_path / "laskowski_with_dois.csv"
         
         # Download data if it does not exist
 
@@ -320,58 +317,29 @@ class Laskowski(Dataset):
         output_path = Path(output_path)
         output_path.mkdir(exist_ok=True)
         
-        dataset_url = "https://raw.githubusercontent.com/FALL-ML/materials-discovery/main/data/digitized_data_for_SSEs.csv"
+        dataset_url = "https://raw.githubusercontent.com/leah-mungai/leah---OBELiX/new_taset_classes/data/misc/laskowski_with_dois.csv"
         df = pd.read_csv(dataset_url)
-        df.to_csv(output_path / "digitized_data_for_SSEs.csv", index_col=0)
+        df.to_csv(output_path / "laskowski_with_dois.csv", index=False)
     
     def read_data(self, data_path, no_cifs=False):
         '''Reads the Laskowski dataset.'''
-        data = pd.read_csv(self.data_path / "digitized_data_for_SSEs.csv", index_col=0)
+        data = pd.read_csv(self.data_path / "laskowski_with_dois.csv", index_col=0)
         
         return data
 
-
-    def add_DOIs(self, laskowski_data_path, doi_lookup_table_path):
-        """
-        Matches DOIs from the Laskowski dataset to the digitized data and saves the result.
-
-        Parameters:
-            laskowski_data_path (str): Path to the Laskowski semi-formatted CSV.
-            doi_lookup_table_path (str): Path to the DOI lookup CSV.
-
-        Returns:
-            pd.DataFrame: The updated DataFrame with a new 'Matched DOIs' column.
-        """
-
-        # Load data
-        laskowski_data = np.genfromtxt(laskowski_data_path, delimiter=",", dtype=str)
-        doi_lookup_raw = np.genfromtxt(doi_lookup_table_path, delimiter=",", dtype=str, skip_header=1)
-        doi_lookup_table = dict(doi_lookup_raw)
-
-        matched_dois_list = []
-
-        for idx, row in self.dataframe.iterrows():
-            composition = row['Reduced Composition']
-            ionic_cond = row['Ionic conductivity (S cm-1)']
-            matched_dois, _ = get_paper_from_laskowski(composition, ionic_cond, laskowski_data, doi_lookup_table)
-            matched_str = "; ".join(matched_dois) if matched_dois else ""
-            matched_dois_list.append(matched_str)
-
-        # Add the DOIs column to the DataFrame
-        self.dataframe["Matched DOIs"] = matched_dois_list
-
-        return self.dataframe
-
-    
     def remove_obelix(self, obelix_object):
-        """
-        Removes entries from the Laskowski dataset that are present in OBELiX.
-        """
-        ob_df = obelix_object.dataframe  
-        laskowski_ids = ob_df["Laskowski ID"].dropna().astype(int)
-        rows_to_drop = self.dataframe.iloc[laskowski_ids]
-        return self.dataframe.drop(index=rows_to_drop.index)
-    
+       """
+       Removes entries from the Laskowski dataset that are present in OBELiX,
+       using both 'Reduced Composition' and 'DOI' columns.
+       """
+       ob_df = obelix_object.dataframe
+       pairs_to_remove = set(zip(ob_df['Reduced Composition'], ob_df['DOI']))
+       self.dataframe = self.dataframe[
+           ~self.dataframe[['Reduced Composition', 'DOI']].apply(tuple, axis=1).isin(pairs_to_remove)
+       ]
+
+       return self.dataframe
+ 
 
 class ShonAndMin(Dataset):
     def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, rename_columns=True):
@@ -402,7 +370,7 @@ class ShonAndMin(Dataset):
 
         dataset_url = "https://raw.githubusercontent.com/leah-mungai/leah---OBELiX/new_taset_classes/data/ao3c01424_si_001.xlsx"
         df = pd.read_excel(dataset_url, sheet_name="Sheet2")  
-        df.to_csv(output_path / "sheet2.csv", index_col=0)
+        df.to_csv(output_path / "sheet2.csv", index=False)
 
     def read_data(self, data_path, no_cifs=False):
         '''Reads the ShonAndMin dataset.'''
