@@ -13,7 +13,7 @@ def test_LiIon():
     
     assert 'Reduced Composition' in li.dataframe.columns
     
-    assert len(li.remove_obelix(obelix_object)) == 297
+    assert len(li.remove_obelix(obelix_object)) == 314
 
 def test_Laskowski():
     shutil.rmtree("laskowski_rawdata", ignore_errors=True)
@@ -24,7 +24,7 @@ def test_Laskowski():
 
     assert len(la.dataframe) == 1346
 
-    assert len(la.remove_obelix(obelix_object)) == 824
+    assert len(la.remove_obelix(obelix_object)) == 1019
 
 
 def test_ShonAndMin():
