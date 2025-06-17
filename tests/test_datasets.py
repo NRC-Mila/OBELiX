@@ -24,7 +24,9 @@ def test_Laskowski():
 
     assert len(la.dataframe) == 1346
 
-    assert len(la.remove_obelix(obelix_object)) == 1019
+    assert len(la.remove_obelix(obelix_object)) == 934
+
+    assert len(la.print_composition_matches_with_missing_doi(obelix_object)) == 6
 
 
 def test_ShonAndMin():
