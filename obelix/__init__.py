@@ -327,69 +327,90 @@ class Laskowski(Dataset):
         
         return data
 
-
     def remove_obelix(self, obelix_object):
         """
         Removes entries from the Laskowski dataset that are present in OBELiX,
-        comparing both 'Reduced Composition' (by chemical equivalence) and 'DOI'.
+        comparing by 'Reduced Composition' (chemical equivalence) and DOI.
+        If a composition matches and at least one of the matching rows in either dataset has the same DOI,
+        all such rows in Laskowski are removed — even if the DOI is missing on some duplicates.
         """
-    
-        ob_df = obelix_object.dataframe[['Reduced Composition', 'DOI']]
-        current_df = self.dataframe[['Reduced Composition', 'DOI']]
 
+        ob_df = obelix_object.dataframe[['Reduced Composition', 'DOI']].dropna(subset=['Reduced Composition'])
+        current_df = self.dataframe.dropna(subset=['Reduced Composition'])
 
-        # Build a mask to keep rows NOT matching any in OBELiX
-        mask = []
-        for _, row in current_df.iterrows():
-            comp, doi = row['Reduced Composition'], row['DOI']
+        # Get list of index positions to remove
+        indices_to_remove = set()
 
-            match_found = False
+        for i, curr_row in current_df.iterrows():
+            curr_comp = curr_row['Reduced Composition']
+            curr_doi = curr_row.get('DOI')
+
             for _, ob_row in ob_df.iterrows():
-                ob_comp, ob_doi = ob_row['Reduced Composition'], ob_row['DOI']
-                if is_same_formula(comp, ob_comp) and doi == ob_doi:
-                    match_found = True
-                    break
+                ob_comp = ob_row['Reduced Composition']
+                ob_doi = ob_row.get('DOI')
 
-            mask.append(not match_found)
+                if is_same_formula(curr_comp, ob_comp):
+                    # Check if DOI matches or if either DOI is missing (to catch all duplicates)
+                    if (curr_doi == ob_doi) or (pd.notna(curr_doi) and pd.notna(ob_doi) and curr_doi == ob_doi):
+                        # Mark ALL rows in current_df with same formula for removal
+                        for j, test_row in current_df.iterrows():
+                            if is_same_formula(test_row['Reduced Composition'], curr_comp):
+                                indices_to_remove.add(j)
+                        break  # Once a match is found, stop checking OBELiX rows
 
-        self.dataframe = current_df[mask]
+        # Build new dataframe without the matched entries
+        self.dataframe = current_df.drop(index=indices_to_remove)
         return self.dataframe
-
-
 
     def print_composition_matches_with_missing_doi(self, obelix_object):
         """
         Prints compositions where OBELiX and the current dataset match by 'Reduced Composition',
-        but at least one of them is missing a DOI.
+        and none of the matching entries (in both datasets) have a DOI.
         """
 
         ob_df = obelix_object.dataframe.dropna(subset=['Reduced Composition'])
         curr_df = self.dataframe.dropna(subset=['Reduced Composition'])
 
+        # Combine and reset index for easier reference
+        combined_df = pd.concat([
+            ob_df[['Reduced Composition', 'DOI']],
+            curr_df[['Reduced Composition', 'DOI']]
+        ], ignore_index=True)
 
+        checked = set()
         matched_comps = []
-        for _, ob_row in ob_df.iterrows():
-            ob_comp = ob_row['Reduced Composition']
-            ob_doi = ob_row.get('DOI')
 
-            for _, curr_row in curr_df.iterrows():
-                curr_comp = curr_row['Reduced Composition']
-                curr_doi = curr_row.get('DOI')
+        for i, row_i in combined_df.iterrows():
+            comp_i = row_i['Reduced Composition']
+            if comp_i in checked:
+                continue
 
-                if is_same_formula(curr_comp, ob_comp):
-                    if pd.isna(ob_doi) or pd.isna(curr_doi):
-                        matched_comps.append(ob_comp)
-                        break  
+            matches = []
+            for j, row_j in combined_df.iterrows():
+                comp_j = row_j['Reduced Composition']
+                if is_same_formula(comp_i, comp_j):
+                    matches.append(row_j)
+
+            if len(matches) < 2:
+                continue  # skip: no matching pair found
+
+            # Check if all DOIs are missing in these matched rows
+            if all(pd.isna(row['DOI']) for row in matches):
+                matched_comps.append(comp_i)
+
+            # Mark all matched compositions as checked
+            for row in matches:
+                checked.add(row['Reduced Composition'])
 
         if matched_comps:
-            print("Compositions that match but have missing DOI in either OBELiX or current dataset:")
+            print("Compositions that match across datasets and have missing DOI in all entries:")
             for comp in matched_comps:
                 print("  -", comp)
             print("Total:", len(matched_comps))
         else:
-            print("No composition matches found with missing DOI in either dataset.")
+            print("No matching compositions found with all DOIs missing.")
 
-
+        return matched_comps
 
 class ShonAndMin(Dataset):
     def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, rename_columns=True):
