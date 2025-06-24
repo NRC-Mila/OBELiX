@@ -235,8 +235,7 @@ class LiIon(Dataset):
 
         if rename_columns:
             df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition', 'source' : 'DOI'})
-
-
+        
         if room_temp_only:
             # Filter for temperatures within room temperature range
             room_temp = 25
@@ -250,7 +249,7 @@ class LiIon(Dataset):
 
         super().__init__(df)
     
-    def download_data(self, output_path, commit_id=None, local=False):
+    def download_data(self, output_path, commit_id=None, local=True):
         output_path = Path(output_path)
         output_path.mkdir(exist_ok=True)
         
@@ -260,12 +259,12 @@ class LiIon(Dataset):
             dataset_url = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
 
         df = pd.read_csv(dataset_url)
-        df.to_csv(output_path / "LiIonDatabase.csv", header=2)
+        df.to_csv(output_path / "LiIonDatabase.csv", header=0)
         
     
     def  read_data(self, data_path, no_cifs=False):
          '''Reads the LiIon dataset.'''
-         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=2)
+         df = pd.read_csv(self.data_path / "LiIonDatabase.csv", header=0)
 
          return df
 
@@ -277,9 +276,56 @@ class LiIon(Dataset):
 
          ob_df = obelix_object.dataframe
          liion_ids = ob_df["Liion ID"].dropna().astype(int)
+
+         self.dataframe.loc[self.dataframe.index.intersection(liion_ids)].to_csv('LiIon_Obelix.csv', index=False)
+
          return self.dataframe.drop(index=liion_ids, errors="ignore")
 
 
+    def remove_matching_entries(self, other):
+        """
+        Removes entries from the current dataset that are present in another dataset,
+        comparing by 'Reduced Composition' (chemical equivalence) and DOI.
+        If a composition matches and at least one of the matching rows in either dataset has the same DOI,
+        all such rows in the current dataset are removed — even if the DOI is missing on some duplicates.
+
+        Parameters:
+        - other: An object with a 'dataframe' attribute or a pandas DataFrame containing 'Reduced Composition' and 'DOI' columns.
+
+        Returns:
+        - The updated DataFrame with matching entries removed.
+        """
+        
+        if isinstance(other, pd.DataFrame):
+            other_df = other
+        else:
+            other_df = other.dataframe
+
+        # Get list of index positions to remove
+        indices_to_remove = set()
+
+        for i, self_row in self.dataframe.iterrows():
+            self_comp = self_row['Reduced Composition']
+            self_doi = self_row.get('DOI')
+
+            for _, other_row in other_df.iterrows():
+                other_comp = other_row['Reduced Composition']
+                other_doi = other_row.get('DOI')
+
+                if is_same_formula(self_comp, other_comp):
+                    # Check if DOI matches or if either DOI is missing (to catch all duplicates)
+                    if (self_doi == other_doi) or (pd.notna(self_doi) and pd.notna(other_doi) and self_doi == other_doi):
+                        # Mark ALL rows in current_df with same formula for removal
+                        for j, test_row in self.dataframe.iterrows():
+                            if is_same_formula(test_row['Reduced Composition'], self_comp):
+                                indices_to_remove.add(j)
+                        break  # Once a match is found, stop checking other_df rows
+
+        self.dataframe.loc[list(indices_to_remove)].to_csv('LiIon_ShonandMin.csv', index=False)
+
+        # Build new DataFrame without the matched entries
+        self.dataframe = self.dataframe.drop(index=indices_to_remove)
+        return self.dataframe
 
 class Laskowski(Dataset):
     '''
@@ -327,39 +373,49 @@ class Laskowski(Dataset):
         
         return data
 
-    def remove_obelix(self, obelix_object):
+    def remove_matching_entries(self, other):
         """
-        Removes entries from the Laskowski dataset that are present in OBELiX,
+        Removes entries from the current dataset that are present in another dataset,
         comparing by 'Reduced Composition' (chemical equivalence) and DOI.
         If a composition matches and at least one of the matching rows in either dataset has the same DOI,
-        all such rows in Laskowski are removed — even if the DOI is missing on some duplicates.
-        """
+        all such rows in the current dataset are removed — even if the DOI is missing on some duplicates.
 
-        ob_df = obelix_object.dataframe[['Reduced Composition', 'DOI']].dropna(subset=['Reduced Composition'])
-        current_df = self.dataframe.dropna(subset=['Reduced Composition'])
+        Parameters:
+        - other: An object with a 'dataframe' attribute or a pandas DataFrame containing 'Reduced Composition' and 'DOI' columns.
+
+        Returns:
+        - The updated DataFrame with matching entries removed.
+        """
+        
+        if isinstance(other, pd.DataFrame):
+            other_df = other
+        else:
+            other_df = other.dataframe
 
         # Get list of index positions to remove
         indices_to_remove = set()
 
-        for i, curr_row in current_df.iterrows():
-            curr_comp = curr_row['Reduced Composition']
-            curr_doi = curr_row.get('DOI')
+        for i, self_row in self.dataframe.iterrows():
+            self_comp = self_row['Reduced Composition']
+            self_doi = self_row.get('DOI')
 
-            for _, ob_row in ob_df.iterrows():
-                ob_comp = ob_row['Reduced Composition']
-                ob_doi = ob_row.get('DOI')
+            for _, other_row in other_df.iterrows():
+                other_comp = other_row['Reduced Composition']
+                other_doi = other_row.get('DOI')
 
-                if is_same_formula(curr_comp, ob_comp):
+                if is_same_formula(self_comp, other_comp):
                     # Check if DOI matches or if either DOI is missing (to catch all duplicates)
-                    if (curr_doi == ob_doi) or (pd.notna(curr_doi) and pd.notna(ob_doi) and curr_doi == ob_doi):
+                    if (self_doi == other_doi) or (pd.notna(self_doi) and pd.notna(other_doi) and self_doi == other_doi):
                         # Mark ALL rows in current_df with same formula for removal
-                        for j, test_row in current_df.iterrows():
-                            if is_same_formula(test_row['Reduced Composition'], curr_comp):
+                        for j, test_row in self.dataframe.iterrows():
+                            if is_same_formula(test_row['Reduced Composition'], self_comp):
                                 indices_to_remove.add(j)
-                        break  # Once a match is found, stop checking OBELiX rows
+                        break  # Once a match is found, stop checking other_df rows
 
-        # Build new dataframe without the matched entries
-        self.dataframe = current_df.drop(index=indices_to_remove)
+        self.dataframe.loc[list(indices_to_remove)].to_csv('Laskowski_ShonandMin.csv', index=False)
+
+        # Build new DataFrame without the matched entries
+        self.dataframe = self.dataframe.drop(index=indices_to_remove)
         return self.dataframe
 
     def print_composition_matches_with_missing_doi(self, obelix_object):
@@ -367,14 +423,13 @@ class Laskowski(Dataset):
         Prints compositions where OBELiX and the current dataset match by 'Reduced Composition',
         and none of the matching entries (in both datasets) have a DOI.
         """
-
-        ob_df = obelix_object.dataframe.dropna(subset=['Reduced Composition'])
-        curr_df = self.dataframe.dropna(subset=['Reduced Composition'])
+        ob_df = obelix_object.dataframe
+        self_df = self.dataframe
 
         # Combine and reset index for easier reference
         combined_df = pd.concat([
             ob_df[['Reduced Composition', 'DOI']],
-            curr_df[['Reduced Composition', 'DOI']]
+            self_df[['Reduced Composition', 'DOI']]
         ], ignore_index=True)
 
         checked = set()
@@ -413,7 +468,8 @@ class Laskowski(Dataset):
         return matched_comps
 
 class ShonAndMin(Dataset):
-    def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, rename_columns=True):
+    def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, keep_min_conductivity=True, 
+            rename_columns=True):
         '''
         Loads and cleans the ShonAndMin dataset.
         '''
@@ -428,10 +484,18 @@ class ShonAndMin(Dataset):
         
         if clean_data:
             df = clean_shon_min(df)
-
+        
         if rename_columns:
             df = df.rename(columns={'Name': 'Reduced Composition', 'Ionic Conductivity':'Ionic conductivity (S cm-1)'
             })
+
+        if keep_min_conductivity:
+           """
+           Keeps only one entry per unique (Reduced Composition, DOI) pair,selecting the row with the minimum Ionic Conductivity.
+           Returns the filtered DataFrame.
+           """
+           df = df.loc[df.groupby(['Reduced Composition', 'DOI'])['Ionic conductivity (S cm-1)'].idxmin()]
+
 
         super().__init__(df)
 
@@ -446,6 +510,8 @@ class ShonAndMin(Dataset):
     def read_data(self, data_path, no_cifs=False):
         '''Reads the ShonAndMin dataset.'''
         return pd.read_csv(data_path / "sheet2.csv", index_col=0) 
+
+
 
 
 
