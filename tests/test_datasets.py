@@ -15,6 +15,14 @@ def test_LiIon():
     
     assert len(li.remove_obelix(obelix_object)) == 314
 
+    assert len(li.remove_matching_entries(obelix_object.dataframe)) == 293
+    
+    la = Laskowski()
+    assert len(li.remove_matching_entries(la.dataframe)) == 371
+
+    sm = ShonAndMin()
+    assert len(li.remove_matching_entries(sm.dataframe)) == 437
+
 def test_Laskowski():
     shutil.rmtree("laskowski_rawdata", ignore_errors=True)
     obelix_object = OBELiX()
@@ -26,17 +34,25 @@ def test_Laskowski():
 
     assert len(la.remove_obelix(obelix_object)) == 934
 
+
+    assert len(la.remove_matching_entries(obelix_object.dataframe)) == 934
+    
+    li = LiIon()
+    sm = ShonAndMin()
+    assert len(la.remove_matching_entries(li.dataframe)) == 1230
+    assert len(la.remove_matching_entries(sm.dataframe)) == 1327
+
     assert len(la.print_composition_matches_with_missing_doi(obelix_object)) == 6
 
 
 def test_ShonAndMin():
     shutil.rmtree("SM_rawdata", ignore_errors=True)
 
-    sm_raw = ShonAndMin(clean_data=False)
+    sm_raw = ShonAndMin(clean_data=False, keep_min_conductivity=False)
     assert len(sm_raw.dataframe) == 4032  
 
     sm = ShonAndMin()
-    assert len(sm.dataframe) == 3083 
+    assert len(sm.dataframe) == 2261 
 
 def test_merge_datasets():
 
