@@ -49,24 +49,3 @@ def is_same_formula(formula_string1, formula_string2):
 
     return f1_dict == f2_dict
 
-def room_temperature_only(df, temp_col="temperature", room_temp=25, tolerance=7, subset=None):
-    """
-    Filters the DataFrame for rows within the room temperature range and removes duplicates.
-    
-    Parameters:
-        df (pd.DataFrame): Input DataFrame.
-        temp_col (str): Column name for temperature.
-        room_temp (int/float): Room temp center, default 25°C.
-        tolerance (int/float): Allowed deviation from room temp.
-        subset (list or None): Columns to check for duplicates.
-    
-    Returns:
-        pd.DataFrame: Filtered DataFrame.
-    """
-    filtered_df = df[(df[temp_col] >= room_temp - tolerance) & (df[temp_col] <= room_temp + tolerance)]
-    return filtered_df.drop_duplicates(subset=subset)
- 
-    
-
-
-

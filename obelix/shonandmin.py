@@ -10,12 +10,12 @@ import re
 import numpy as np
 
 from obelix.utils import round_partial_occ, replace_text_IC, is_same_formula
-from obelix import Dataset
+from obelix.dataset import Dataset
 from obelix.shon_min import clean_shon_min
 
 
 class ShonAndMin(Dataset):
-    def __init__(self, data_path="./SM_rawdata", no_cifs=False, clean_data=True, commit_id=None, keep_min_conductivity=True,
+    def __init__(self, data_path="./shonandmin_rawdata", no_cifs=False, clean_data=True, commit_id=None, keep_min_conductivity=True,
             rename_columns=True):
         '''
         Loads and cleans the ShonAndMin dataset.

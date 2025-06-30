@@ -10,8 +10,8 @@ import re
 import numpy as np
 
 from obelix.utils import round_partial_occ, replace_text_IC, is_same_formula
-
-from obelix import Dataset, OBELiX
+from obelix.dataset import Dataset
+#from obelix import OBELiX
 
 class Laskowski(Dataset):
     '''
@@ -40,7 +40,7 @@ class Laskowski(Dataset):
         if rename_columns:
             df = df.rename(columns={
                 'σ(RT)(S cm-1)': 'Ionic conductivity (S cm-1)',
-                'Structure': 'Reduced Composition'
+                'Structure': 'Reduced Composition', 'space group': 'Space group'
             })
 
         super().__init__(df)
@@ -58,51 +58,6 @@ class Laskowski(Dataset):
         data = pd.read_csv(self.data_path / "laskowski_with_dois.csv", index_col=0)
         
         return data
-
-    def remove_matching_entries(self, other):
-        """
-        Removes entries from the current dataset that are present in another dataset,
-        comparing by 'Reduced Composition' (chemical equivalence) and DOI.
-        If a composition matches and at least one of the matching rows in either dataset has the same DOI,
-        all such rows in the current dataset are removed — even if the DOI is missing on some duplicates.
-
-        Parameters:
-        - other: An object with a 'dataframe' attribute or a pandas DataFrame containing 'Reduced Composition' and 'DOI' columns.
-
-        Returns:
-        - The updated DataFrame with matching entries removed.
-        """
-        
-        if isinstance(other, pd.DataFrame):
-            other_df = other
-        else:
-            other_df = other.dataframe
-
-        # Get list of index positions to remove
-        indices_to_remove = set()
-
-        for i, self_row in self.dataframe.iterrows():
-            self_comp = self_row['Reduced Composition']
-            self_doi = self_row.get('DOI')
-
-            for _, other_row in other_df.iterrows():
-                other_comp = other_row['Reduced Composition']
-                other_doi = other_row.get('DOI')
-
-                if is_same_formula(self_comp, other_comp):
-                    # Check if DOI matches or if either DOI is missing (to catch all duplicates)
-                    if (self_doi == other_doi) or (pd.notna(self_doi) and pd.notna(other_doi) and self_doi == other_doi):
-                        # Mark ALL rows in current_df with same formula for removal
-                        for j, test_row in self.dataframe.iterrows():
-                            if is_same_formula(test_row['Reduced Composition'], self_comp):
-                                indices_to_remove.add(j)
-                        break  # Once a match is found, stop checking other_df rows
-
-        self.dataframe.loc[list(indices_to_remove)].to_csv('matching_entries.csv', index=False)
-
-        # Build new DataFrame without the matched entries
-        self.dataframe = self.dataframe.drop(index=indices_to_remove)
-        return self.dataframe
 
     def print_composition_matches_with_missing_doi(self, obelix_object):
         """
