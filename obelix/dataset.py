@@ -121,16 +121,13 @@ class Dataset():
                 if is_same_formula(self_comp, other_comp):
                     if (self_doi == other_doi) and pd.notna(self_doi) and pd.notna(other_doi):
                         for j, test_row in self.dataframe.iterrows():
-                            test_doi = test_row.get('DOI')
-                            if is_same_formula(test_row['Reduced Composition'], self_comp) and test_doi == self_doi:
-                                indices_to_remove.add(j)
+                            if is_same_formula(test_row['Reduced Composition'], self_comp):
+                                test_doi = test_row.get('DOI')
+                                if (test_doi == self_doi) or pd.isna(test_doi):
+                                    indices_to_remove.add(j)
                         break
-
 
         self.dataframe.loc[list(indices_to_remove)].to_csv('matching_entries.csv', index=False)
 
-        self.dataframe = self.dataframe.drop(index=indices_to_remove)
-        return self.dataframe
-
-
-
+        new_dataframe = self.dataframe.drop(index=indices_to_remove)
+        return Dataset(new_dataframe)
