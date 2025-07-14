@@ -66,23 +66,19 @@ class LiIon(Dataset):
         df.to_csv(output_path / "LiIonDatabase.csv", index=False)
         
     
-    def  read_data(self, data_path, no_cifs=False):
-         '''Reads the LiIon dataset.'''
-         df = pd.read_csv(self.data_path / "LiIonDatabase.csv")
+    def read_data(self, data_path, no_cifs=False):
+        '''Reads the LiIon dataset.'''
+        df = pd.read_csv(self.data_path / "LiIonDatabase.csv")
+        return df
 
-         return df
+    def remove_obelix(self, obelix_object):
+        """
+        Removes entries from the LiIon dataset that are present in OBELiX.
+        """
+        ob_df = obelix_object.dataframe
+        liion_ids = ob_df["Liion ID"].dropna().astype(int)
 
-
-    def  remove_obelix(self, obelix_object):
-         """
-         Removes entries from the LiIon dataset that are present in OBELiX.
-         """
-
-         ob_df = obelix_object.dataframe
-         liion_ids = ob_df["Liion ID"].dropna().astype(int)
-
-         self.dataframe.loc[self.dataframe.index.intersection(liion_ids)].to_csv('liion_obelix_matching_entries.csv', index=False)
-
-         return self.dataframe.drop(index=liion_ids, errors="ignore")
+        self.dataframe.loc[self.dataframe.index.intersection(liion_ids)].to_csv('liion_obelix_matching_entries.csv', index=False)
+        return self.dataframe.drop(index=liion_ids, errors="ignore")
 
 
