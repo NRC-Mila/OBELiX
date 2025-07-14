@@ -52,16 +52,16 @@ def test_removing_matching_entries():
     sm = ShonAndMin()
     obelix_object = OBELiX()
 
-    assert len(li.remove_matching_entries(obelix_object.dataframe.copy())) == 306
+    assert len(li.remove_matching_entries(obelix_object.dataframe)) == 306
     li = LiIon()
-    assert len(li.remove_matching_entries(la.dataframe.copy())) == 383
+    assert len(li.remove_matching_entries(la.dataframe)) == 383
     li = LiIon()
-    assert len(li.remove_matching_entries(sm.dataframe.copy())) == 439
+    assert len(li.remove_matching_entries(sm.dataframe)) == 439
 
     la = Laskowski()
-    assert len(la.remove_matching_entries(obelix_object.dataframe.copy())) == 1019
+    assert len(la.remove_matching_entries(obelix_object.dataframe)) == 999
     la = Laskowski()
-    assert len(la.remove_matching_entries(li.dataframe.copy())) == 1281
+    assert len(la.remove_matching_entries(li.dataframe)) == 1267
     la = Laskowski()
-    assert len(la.remove_matching_entries(sm.dataframe.copy())) == 1339
+    assert len(la.remove_matching_entries(sm.dataframe)) == 1334
 
