@@ -214,7 +214,6 @@ if __name__ == "__main__":
     #     "solver": "adam",
     # }
 
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         x_train, y_train, test_xy = process_data(cif_only=cif_only, partial=partial)
