@@ -110,6 +110,10 @@ for entry in ob.round_partial().with_cifs():
 
 See the [`./benchmark`](https://github.com/NRC-Mila/OBELiX/tree/main/benchmark) folder for code to reproduce the experiments in the paper.
 
+## Data Analysis and Processing
+
+See the [`./data`](https://github.com/NRC-Mila/OBELiX/tree/main/data) folder for raw data as well as various data analysis and processing scripts.
+
 ## Citation
 
 If you use OBELiX, please cite [our paper](https://arxiv.org/abs/2502.14234)
