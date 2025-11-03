@@ -106,6 +106,10 @@ for entry in ob.round_partial().with_cifs():
 | `Laskowski ID` | Reference (citation) number in the pdf supplementary information of [Forrest A. L. Laskowski et al., Energy Environ. Sci., 16, 1264 (2023)](https://pubs.rsc.org/en/content/articlelanding/2023/ee/d2ee03499a#!) if the entry is also in that database. Entries are not numbered so it is easier to identify them that way. Multiple entries can come from the same reference; use the composition to identify the exact entry.|
 | `Liion ID` | Entry number in the [The Liverpool Ionics Dataset](http://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.html) if the entry is also in that database|
 
+## Benchmarks
+
+See the [`./benchmark`](https://github.com/NRC-Mila/OBELiX/tree/main/benchmark) folder for code to reproduce the experiments in the paper.
+
 ## Citation
 
 If you use OBELiX, please cite [our paper](https://arxiv.org/abs/2502.14234)
