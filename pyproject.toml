@@ -20,3 +20,8 @@ keywords = ["batteries", "solid-state", "dataset", "database", "ionic-conductivi
 
 [project.urls]
 Repository = "https://github.com/NRC-Mila/OBELiX"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow -- downloads real data and checks wall-clock time (deselect with '-m \"not slow\"')",
+]
