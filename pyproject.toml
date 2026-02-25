@@ -8,7 +8,7 @@ packages = ["obelix"]
 [project]
 name = "obelix-data"
 version = "1.1.1"
-dependencies = ["pandas", "pymatgen", "tqdm"]
+dependencies = ["pandas", "pymatgen", "tqdm", "numpy", "openpyxl"]
 requires-python = ">=3.8"
 maintainers = [
   {name = "Felix Therrien", email = "felix.therrien@gmail.com"}
@@ -17,6 +17,9 @@ description = "A Curated Dataset of Crystal Structures and Experimentally Measur
 readme = "README.md"
 license = "MIT"
 keywords = ["batteries", "solid-state", "dataset", "database", "ionic-conductivity"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
 
 [project.urls]
 Repository = "https://github.com/NRC-Mila/OBELiX"
