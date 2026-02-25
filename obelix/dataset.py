@@ -76,6 +76,39 @@ class Dataset():
                 structures.append(None)
         return Dataset(self.dataframe.assign(structure=structures))
 
+    def __add__(self, other):
+        """Concatenate two datasets, keeping only common columns.
+
+        No deduplication is performed — use :meth:`union` for that.
+
+        Returns:
+            A new :class:`Dataset` with rows from both operands.
+        """
+        common_cols = [c for c in self.dataframe.columns
+                       if c in other.dataframe.columns]
+        combined = pd.concat(
+            [self.dataframe[common_cols], other.dataframe[common_cols]],
+            ignore_index=True,
+        )
+        return Dataset(combined)
+
+    def union(self, other):
+        """Concatenate two datasets and deduplicate by reduced composition.
+
+        Like :meth:`__add__` but removes rows whose canonical reduced
+        formula (via pymatgen) duplicates an earlier row.  The first
+        occurrence is kept.
+
+        Returns:
+            A new :class:`Dataset` with combined, deduplicated rows.
+        """
+        combined = self + other
+        canonical = combined.dataframe['Reduced Composition'].apply(
+            lambda f: Composition(f).reduced_formula if pd.notna(f) else f
+        )
+        deduped = combined.dataframe[~canonical.duplicated(keep='first')]
+        return Dataset(deduped)
+
     @staticmethod
     def merge_datasets(*datasets, remove_duplicates=True):
         """Merge multiple Dataset objects into a single Dataset.
