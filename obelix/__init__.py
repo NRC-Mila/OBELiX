@@ -11,6 +11,7 @@ from tqdm import tqdm
 from .dataset import Dataset
 from .laskowski import Laskowski
 from .liion import LiIon
+from .mchaffie import McHaffie
 from .shonandmin import ShonAndMin
 from .utils import replace_text_IC, round_partial_occ
 
