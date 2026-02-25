@@ -5,11 +5,9 @@ from pathlib import Path
 from pymatgen.core import Structure
 import warnings
 from tqdm import tqdm
-import importlib 
-import re
-import numpy as np
+import importlib
 
-from .utils import round_partial_occ, replace_text_IC, is_same_formula
+from .utils import replace_text_IC
 
 from .liion import LiIon
 from .laskowski import Laskowski
