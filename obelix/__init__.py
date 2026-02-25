@@ -13,6 +13,7 @@ from .utils import replace_text_IC, round_partial_occ
 from .liion import LiIon
 from .laskowski import Laskowski
 from .shonandmin import ShonAndMin
+from .mchaffie import McHaffie
 from .dataset import Dataset
 
 __version__ = importlib.metadata.version("obelix-data")
