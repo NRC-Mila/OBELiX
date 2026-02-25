@@ -1,17 +1,7 @@
 import pandas as pd
-import urllib.request
-import tarfile
 from pathlib import Path
-from pymatgen.core import Structure
-import warnings
-from tqdm import tqdm
-import importlib
-import re
-import numpy as np
 
-from obelix.utils import round_partial_occ, replace_text_IC, is_same_formula
-
-from obelix.dataset import Dataset
+from .dataset import Dataset
 
 class LiIon(Dataset):
     '''
@@ -53,7 +43,7 @@ class LiIon(Dataset):
 
         super().__init__(df)
     
-    def download_data(self, output_path, commit_id=None, local=True):
+    def download_data(self, output_path, commit_id=None, local=False):
         output_path = Path(output_path)
         output_path.mkdir(exist_ok=True)
         
@@ -72,13 +62,22 @@ class LiIon(Dataset):
         return df
 
     def remove_obelix(self, obelix_object):
-        """
-        Removes entries from the LiIon dataset that are present in OBELiX.
+        """Remove entries from the LiIon dataset that are present in OBELiX.
+
+        Uses the ``'Liion ID'`` column in the OBELiX dataset to identify
+        which LiIon rows to drop (by index).
+
+        Parameters:
+            obelix_object: An OBELiX :class:`Dataset` whose dataframe
+                contains a ``'Liion ID'`` column.
+
+        Returns:
+            A new :class:`Dataset` with the matching entries removed.
+            The original dataset is **not** mutated.
         """
         ob_df = obelix_object.dataframe
         liion_ids = ob_df["Liion ID"].dropna().astype(int)
-
-        self.dataframe.loc[self.dataframe.index.intersection(liion_ids)].to_csv('liion_obelix_matching_entries.csv', index=False)
-        return self.dataframe.drop(index=liion_ids, errors="ignore")
+        new_df = self.dataframe.drop(index=liion_ids, errors="ignore")
+        return Dataset(new_df)
 
 
