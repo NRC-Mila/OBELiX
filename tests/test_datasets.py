@@ -298,6 +298,7 @@ class TestShonAndMin:
 # McHaffie tests
 # ===================================================================
 
+
 class TestMcHaffie:
     """Tests for the McHaffie dataset class."""
 
@@ -308,47 +309,45 @@ class TestMcHaffie:
 
     def test_mchaffie_expected_size(self, mchaffie_data):
         """McHaffie dataset contains exactly 571 entries."""
-        assert len(mchaffie_data) == 571, (
-            f"Expected 571 entries, got {len(mchaffie_data)}"
-        )
+        assert (
+            len(mchaffie_data) == 571
+        ), f"Expected 571 entries, got {len(mchaffie_data)}"
 
     def test_mchaffie_columns(self, mchaffie_data):
         """After rename, McHaffie has the expected standard columns."""
         cols = mchaffie_data.dataframe.columns
-        assert "Reduced Composition" in cols, (
-            "Missing 'Reduced Composition' column after rename"
-        )
-        assert "Ionic conductivity (S cm-1)" in cols, (
-            "Missing 'Ionic conductivity (S cm-1)' column after rename"
-        )
-        assert "DOI" in cols, (
-            "Missing 'DOI' column after rename"
-        )
-        assert "ICSD Collection Code" in cols, (
-            "Missing 'ICSD Collection Code' column after rename"
-        )
+        assert (
+            "Reduced Composition" in cols
+        ), "Missing 'Reduced Composition' column after rename"
+        assert (
+            "Ionic conductivity (S cm-1)" in cols
+        ), "Missing 'Ionic conductivity (S cm-1)' column after rename"
+        assert "DOI" in cols, "Missing 'DOI' column after rename"
+        assert (
+            "ICSD Collection Code" in cols
+        ), "Missing 'ICSD Collection Code' column after rename"
 
     def test_mchaffie_no_nulls(self, mchaffie_data):
         """Critical columns (conductivity, DOI, ICSD Collection Code) have no
         null values."""
         df = mchaffie_data.dataframe
-        assert df["Ionic conductivity (S cm-1)"].notna().all(), (
-            f"Found {df['Ionic conductivity (S cm-1)'].isna().sum()} null conductivity values"
-        )
-        assert df["DOI"].notna().all(), (
-            f"Found {df['DOI'].isna().sum()} null DOI values"
-        )
-        assert df["ICSD Collection Code"].notna().all(), (
-            f"Found {df['ICSD Collection Code'].isna().sum()} null ICSD Collection Code values"
-        )
+        assert (
+            df["Ionic conductivity (S cm-1)"].notna().all()
+        ), f"Found {df['Ionic conductivity (S cm-1)'].isna().sum()} null conductivity values"
+        assert (
+            df["DOI"].notna().all()
+        ), f"Found {df['DOI'].isna().sum()} null DOI values"
+        assert (
+            df["ICSD Collection Code"].notna().all()
+        ), f"Found {df['ICSD Collection Code'].isna().sum()} null ICSD Collection Code values"
 
     def test_mchaffie_conductivity_range(self, mchaffie_data):
         """All conductivity values are positive."""
         df = mchaffie_data.dataframe
         conductivities = df["Ionic conductivity (S cm-1)"]
-        assert (conductivities > 0).all(), (
-            f"Found {(conductivities <= 0).sum()} non-positive conductivity values"
-        )
+        assert (
+            conductivities > 0
+        ).all(), f"Found {(conductivities <= 0).sum()} non-positive conductivity values"
 
     def test_mchaffie_remove_obelix_returns_dataset(self, mchaffie_data, obelix_data):
         """McHaffie.remove_obelix returns a Dataset instance.
@@ -357,16 +356,16 @@ class TestMcHaffie:
         should internally use remove_matching_entries for composition+DOI based
         deduplication."""
         result = mchaffie_data.remove_obelix(obelix_data)
-        assert isinstance(result, Dataset), (
-            f"Expected Dataset, got {type(result).__name__}"
-        )
+        assert isinstance(
+            result, Dataset
+        ), f"Expected Dataset, got {type(result).__name__}"
 
     def test_mchaffie_remove_obelix_reduces_count(self, mchaffie_data, obelix_data):
         """Removing OBELiX entries from McHaffie produces fewer rows."""
         result = mchaffie_data.remove_obelix(obelix_data)
-        assert len(result) < len(mchaffie_data), (
-            f"Expected fewer rows after removal: got {len(result)} vs original {len(mchaffie_data)}"
-        )
+        assert len(result) < len(
+            mchaffie_data
+        ), f"Expected fewer rows after removal: got {len(result)} vs original {len(mchaffie_data)}"
 
     def test_mchaffie_icsd_stubs_raise(self, mchaffie_data):
         """All three ICSD stub methods raise NotImplementedError."""

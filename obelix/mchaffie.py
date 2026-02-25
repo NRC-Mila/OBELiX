@@ -1,8 +1,8 @@
-import pandas as pd
 from pathlib import Path
 
-from .dataset import Dataset
+import pandas as pd
 
+from .dataset import Dataset
 
 # Caltech Data Repository download URL (CC0 license)
 _CALTECH_URL = (
