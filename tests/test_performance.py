@@ -7,10 +7,10 @@ time limits.  They exist to catch algorithmic regressions -- for example,
 an O(n^3) dedup loop that used to complete in seconds ballooning to minutes
 after a dataset grows.
 
-All tests in this module are marked ``@pytest.mark.slow`` so they can be
-excluded from fast CI runs with::
+All tests in this module are marked ``@pytest.mark.dev`` so they are
+automatically skipped unless the ``--rundev`` flag is passed::
 
-    pytest -m "not slow"
+    pytest --rundev
 
 Note: Some tests exercise methods that have not yet been implemented
 (``Laskowski.remove_obelix`` and ``Dataset.union``).  These tests will fail
@@ -22,13 +22,13 @@ import time
 
 import pytest
 
-from obelix import OBELiX, LiIon, Laskowski, ShonAndMin
+from obelix import Laskowski, LiIon, OBELiX, ShonAndMin
 from obelix.dataset import Dataset
-
 
 # ---------------------------------------------------------------------------
 # Session-scoped fixtures -- download data once, reuse across all tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def obelix_data():
@@ -58,7 +58,8 @@ def shonandmin_data():
 # Performance tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.slow
+
+@pytest.mark.dev
 def test_remove_matching_entries_performance(obelix_data):
     """Verify that remove_matching_entries completes in under 30 seconds.
 
@@ -82,12 +83,12 @@ def test_remove_matching_entries_performance(obelix_data):
         f"exceeding the {timeout}s limit"
     )
     # Sanity check: the result should be a Dataset with fewer rows than the input.
-    assert len(result) < len(liion), (
-        "Expected some entries to be removed, but output length equals input length"
-    )
+    assert len(result) < len(
+        liion
+    ), "Expected some entries to be removed, but output length equals input length"
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_remove_obelix_liion_performance(obelix_data):
     """Verify that LiIon.remove_obelix completes in under 5 seconds.
 
@@ -105,12 +106,12 @@ def test_remove_obelix_liion_performance(obelix_data):
         f"LiIon.remove_obelix(obelix) took {elapsed:.1f}s, "
         f"exceeding the {timeout}s limit"
     )
-    assert len(result) < len(liion.dataframe), (
-        "Expected some entries to be removed via index drop"
-    )
+    assert len(result) < len(
+        liion.dataframe
+    ), "Expected some entries to be removed via index drop"
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_remove_obelix_laskowski_performance(obelix_data):
     """Verify that Laskowski.remove_obelix completes in under 5 seconds.
 
@@ -131,8 +132,10 @@ def test_remove_obelix_laskowski_performance(obelix_data):
     )
 
 
-@pytest.mark.slow
-def test_merge_datasets_performance(obelix_data, liion_data, laskowski_data, shonandmin_data):
+@pytest.mark.dev
+def test_merge_datasets_performance(
+    obelix_data, liion_data, laskowski_data, shonandmin_data
+):
     """Verify that merging all four datasets completes in under 30 seconds.
 
     Uses the session-scoped fixtures directly since ``merge_datasets`` does
@@ -153,7 +156,7 @@ def test_merge_datasets_performance(obelix_data, liion_data, laskowski_data, sho
     assert len(result) > 0, "Merged dataset should not be empty"
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_union_performance():
     """Verify that Dataset.union completes in under 15 seconds.
 
@@ -174,6 +177,6 @@ def test_union_performance():
         f"exceeding the {timeout}s limit"
     )
     # The union should contain at least as many rows as the larger input.
-    assert len(result) >= max(len(liion), len(laskowski)), (
-        "Union result should have at least as many entries as the larger input dataset"
-    )
+    assert len(result) >= max(
+        len(liion), len(laskowski)
+    ), "Union result should have at least as many entries as the larger input dataset"

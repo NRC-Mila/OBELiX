@@ -19,12 +19,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from obelix import OBELiX, LiIon, Laskowski, ShonAndMin, McHaffie, Dataset
-
+from obelix import Dataset, Laskowski, LiIon, McHaffie, OBELiX, ShonAndMin
 
 # ---------------------------------------------------------------------------
 # Session-scoped fixtures -- download each dataset exactly once
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def obelix_data():
@@ -77,8 +77,9 @@ def shonandmin_data(tmp_path_factory):
 def shonandmin_raw_data(tmp_path_factory):
     """Load the ShonAndMin dataset without cleaning or deduplication."""
     path = str(tmp_path_factory.mktemp("shonandmin_raw"))
-    return ShonAndMin(data_path=path, clean_data=False,
-                      keep_min_conductivity=False, local=True)
+    return ShonAndMin(
+        data_path=path, clean_data=False, keep_min_conductivity=False, local=True
+    )
 
 
 @pytest.fixture(scope="session")
@@ -96,6 +97,7 @@ def mchaffie_data(tmp_path_factory):
 # LiIon tests
 # ===================================================================
 
+
 class TestLiIon:
     """Tests for the LiIon dataset class."""
 
@@ -107,19 +109,19 @@ class TestLiIon:
     def test_liion_columns(self, liion_data):
         """After rename, LiIon has the standard composition and conductivity columns."""
         cols = liion_data.dataframe.columns
-        assert "Reduced Composition" in cols, (
-            "Missing 'Reduced Composition' column after rename"
-        )
-        assert "Ionic conductivity (S cm-1)" in cols, (
-            "Missing 'Ionic conductivity (S cm-1)' column after rename"
-        )
+        assert (
+            "Reduced Composition" in cols
+        ), "Missing 'Reduced Composition' column after rename"
+        assert (
+            "Ionic conductivity (S cm-1)" in cols
+        ), "Missing 'Ionic conductivity (S cm-1)' column after rename"
 
     def test_liion_raw_vs_filtered(self, liion_data, liion_raw_data):
         """The unfiltered dataset (all temperatures) has strictly more rows
         than the room-temperature-only dataset."""
-        assert len(liion_raw_data) > len(liion_data), (
-            f"Expected raw ({len(liion_raw_data)}) > filtered ({len(liion_data)})"
-        )
+        assert len(liion_raw_data) > len(
+            liion_data
+        ), f"Expected raw ({len(liion_raw_data)}) > filtered ({len(liion_data)})"
 
     def test_liion_room_temp_filter(self, liion_data):
         """Every row in the room-temperature-filtered dataset has a temperature
@@ -127,27 +129,23 @@ class TestLiIon:
         df = liion_data.dataframe
         if "temperature" in df.columns:
             temps = df["temperature"]
-            assert temps.min() >= 18, (
-                f"Found temperature below 18: {temps.min()}"
-            )
-            assert temps.max() <= 32, (
-                f"Found temperature above 32: {temps.max()}"
-            )
+            assert temps.min() >= 18, f"Found temperature below 18: {temps.min()}"
+            assert temps.max() <= 32, f"Found temperature above 32: {temps.max()}"
 
     def test_liion_remove_obelix_returns_dataset(self, liion_data, obelix_data):
         """LiIon.remove_obelix returns a Dataset instance, not a raw DataFrame."""
         result = liion_data.remove_obelix(obelix_data)
-        assert isinstance(result, Dataset), (
-            f"Expected Dataset, got {type(result).__name__}"
-        )
+        assert isinstance(
+            result, Dataset
+        ), f"Expected Dataset, got {type(result).__name__}"
 
     def test_liion_remove_obelix_reduces_count(self, liion_data, obelix_data):
         """Removing OBELiX entries from LiIon produces fewer rows than the
         original LiIon dataset."""
         result = liion_data.remove_obelix(obelix_data)
-        assert len(result) < len(liion_data), (
-            f"Expected fewer rows after removal: got {len(result)} vs original {len(liion_data)}"
-        )
+        assert len(result) < len(
+            liion_data
+        ), f"Expected fewer rows after removal: got {len(result)} vs original {len(liion_data)}"
 
     def test_liion_remove_obelix_correctness(self, liion_data, obelix_data):
         """After removing OBELiX entries, none of the Liion IDs present in the
@@ -157,12 +155,7 @@ class TestLiIon:
         entries back to original LiIon indices.  After removal, the result's
         index should have no intersection with those IDs.
         """
-        ob_liion_ids = (
-            obelix_data.dataframe["Liion ID"]
-            .dropna()
-            .astype(int)
-            .tolist()
-        )
+        ob_liion_ids = obelix_data.dataframe["Liion ID"].dropna().astype(int).tolist()
         result = liion_data.remove_obelix(obelix_data)
         remaining_ids = set(result.dataframe.index)
         overlap = remaining_ids.intersection(ob_liion_ids)
@@ -176,6 +169,7 @@ class TestLiIon:
 # Laskowski tests
 # ===================================================================
 
+
 class TestLaskowski:
     """Tests for the Laskowski dataset class."""
 
@@ -187,29 +181,27 @@ class TestLaskowski:
     def test_laskowski_columns(self, laskowski_data):
         """After rename, Laskowski has the expected standard columns."""
         cols = laskowski_data.dataframe.columns
-        assert "Reduced Composition" in cols, (
-            "Missing 'Reduced Composition' column after rename"
-        )
-        assert "Ionic conductivity (S cm-1)" in cols, (
-            "Missing 'Ionic conductivity (S cm-1)' column after rename"
-        )
-        assert "Space group" in cols, (
-            "Missing 'Space group' column after rename"
-        )
+        assert (
+            "Reduced Composition" in cols
+        ), "Missing 'Reduced Composition' column after rename"
+        assert (
+            "Ionic conductivity (S cm-1)" in cols
+        ), "Missing 'Ionic conductivity (S cm-1)' column after rename"
+        assert "Space group" in cols, "Missing 'Space group' column after rename"
 
     def test_laskowski_remove_obelix_returns_dataset(self, laskowski_data, obelix_data):
         """Laskowski.remove_obelix returns a Dataset instance."""
         result = laskowski_data.remove_obelix(obelix_data)
-        assert isinstance(result, Dataset), (
-            f"Expected Dataset, got {type(result).__name__}"
-        )
+        assert isinstance(
+            result, Dataset
+        ), f"Expected Dataset, got {type(result).__name__}"
 
     def test_laskowski_remove_obelix_reduces_count(self, laskowski_data, obelix_data):
         """Removing OBELiX entries from Laskowski produces fewer rows."""
         result = laskowski_data.remove_obelix(obelix_data)
-        assert len(result) < len(laskowski_data), (
-            f"Expected fewer rows after removal: got {len(result)} vs original {len(laskowski_data)}"
-        )
+        assert len(result) < len(
+            laskowski_data
+        ), f"Expected fewer rows after removal: got {len(result)} vs original {len(laskowski_data)}"
 
     def test_laskowski_remove_obelix_correctness(self, laskowski_data, obelix_data):
         """After removing OBELiX entries, none of the Laskowski IDs present in
@@ -220,10 +212,7 @@ class TestLaskowski:
         have no intersection with those IDs.
         """
         ob_lask_ids = (
-            obelix_data.dataframe["Laskowski ID"]
-            .dropna()
-            .astype(int)
-            .tolist()
+            obelix_data.dataframe["Laskowski ID"].dropna().astype(int).tolist()
         )
         result = laskowski_data.remove_obelix(obelix_data)
         remaining_ids = set(result.dataframe.index)
@@ -238,6 +227,7 @@ class TestLaskowski:
 # ShonAndMin tests
 # ===================================================================
 
+
 class TestShonAndMin:
     """Tests for the ShonAndMin dataset class."""
 
@@ -249,19 +239,19 @@ class TestShonAndMin:
     def test_shonandmin_columns(self, shonandmin_data):
         """After rename, ShonAndMin has the expected standard columns."""
         cols = shonandmin_data.dataframe.columns
-        assert "Reduced Composition" in cols, (
-            "Missing 'Reduced Composition' column after rename"
-        )
-        assert "Ionic conductivity (S cm-1)" in cols, (
-            "Missing 'Ionic conductivity (S cm-1)' column after rename"
-        )
+        assert (
+            "Reduced Composition" in cols
+        ), "Missing 'Reduced Composition' column after rename"
+        assert (
+            "Ionic conductivity (S cm-1)" in cols
+        ), "Missing 'Ionic conductivity (S cm-1)' column after rename"
 
     def test_shonandmin_raw_vs_cleaned(self, shonandmin_data, shonandmin_raw_data):
         """The raw (uncleaned, no dedup) dataset has strictly more rows than
         the cleaned and deduplicated dataset."""
-        assert len(shonandmin_raw_data) > len(shonandmin_data), (
-            f"Expected raw ({len(shonandmin_raw_data)}) > cleaned ({len(shonandmin_data)})"
-        )
+        assert len(shonandmin_raw_data) > len(
+            shonandmin_data
+        ), f"Expected raw ({len(shonandmin_raw_data)}) > cleaned ({len(shonandmin_data)})"
 
     def test_shonandmin_cleaning_validity(self, shonandmin_data):
         """After cleaning, every row must have a valid positive numeric ionic
@@ -270,12 +260,12 @@ class TestShonAndMin:
         cond_col = "Ionic conductivity (S cm-1)"
         conductivities = pd.to_numeric(df[cond_col], errors="coerce")
 
-        assert conductivities.notna().all(), (
-            f"Found {conductivities.isna().sum()} non-numeric conductivity values after cleaning"
-        )
-        assert (conductivities > 0).all(), (
-            f"Found {(conductivities <= 0).sum()} non-positive conductivity values after cleaning"
-        )
+        assert (
+            conductivities.notna().all()
+        ), f"Found {conductivities.isna().sum()} non-numeric conductivity values after cleaning"
+        assert (
+            conductivities > 0
+        ).all(), f"Found {(conductivities <= 0).sum()} non-positive conductivity values after cleaning"
 
     def test_shonandmin_min_conductivity(self, shonandmin_data):
         """When keep_min_conductivity=True (default), there should be no
@@ -290,16 +280,18 @@ class TestShonAndMin:
                 f"{duplicates.head().to_dict()}"
             )
 
-    def test_shonandmin_remove_obelix_returns_dataset(self, shonandmin_data, obelix_data):
+    def test_shonandmin_remove_obelix_returns_dataset(
+        self, shonandmin_data, obelix_data
+    ):
         """ShonAndMin.remove_obelix returns a Dataset instance.
 
         Since OBELiX has no dedicated ID column for ShonAndMin, this method
         should internally use remove_matching_entries for composition+DOI based
         deduplication."""
         result = shonandmin_data.remove_obelix(obelix_data)
-        assert isinstance(result, Dataset), (
-            f"Expected Dataset, got {type(result).__name__}"
-        )
+        assert isinstance(
+            result, Dataset
+        ), f"Expected Dataset, got {type(result).__name__}"
 
 
 # ===================================================================
@@ -390,6 +382,7 @@ class TestMcHaffie:
 # Cross-dataset tests
 # ===================================================================
 
+
 class TestCrossDataset:
     """Tests for interactions between multiple dataset objects."""
 
@@ -397,13 +390,13 @@ class TestCrossDataset:
         """The + operator on two Datasets returns a new Dataset whose length
         equals the sum of the two input lengths."""
         combined = obelix_data + liion_data
-        assert isinstance(combined, Dataset), (
-            f"Expected Dataset from addition, got {type(combined).__name__}"
-        )
+        assert isinstance(
+            combined, Dataset
+        ), f"Expected Dataset from addition, got {type(combined).__name__}"
         expected_len = len(obelix_data) + len(liion_data)
-        assert len(combined) == expected_len, (
-            f"Expected combined length {expected_len}, got {len(combined)}"
-        )
+        assert (
+            len(combined) == expected_len
+        ), f"Expected combined length {expected_len}, got {len(combined)}"
 
     def test_dataset_addition_columns(self, obelix_data, liion_data):
         """When adding two datasets, the resulting columns should be only the
@@ -413,9 +406,9 @@ class TestCrossDataset:
         liion_cols = set(liion_data.dataframe.columns)
         common_cols = obelix_cols & liion_cols
         result_cols = set(combined.dataframe.columns)
-        assert result_cols == common_cols, (
-            f"Expected only common columns {common_cols}, got {result_cols}"
-        )
+        assert (
+            result_cols == common_cols
+        ), f"Expected only common columns {common_cols}, got {result_cols}"
 
     def test_no_self_duplicates_after_remove_obelix(self, liion_data, obelix_data):
         """After removing OBELiX entries from LiIon, no remaining LiIon entry
@@ -437,7 +430,9 @@ class TestCrossDataset:
 
         # Check that no remaining LiIon entry has an exact match
         matches = 0
-        for _, row in result_df.dropna(subset=["Reduced Composition", "DOI"]).iterrows():
+        for _, row in result_df.dropna(
+            subset=["Reduced Composition", "DOI"]
+        ).iterrows():
             if (row["Reduced Composition"], row["DOI"]) in ob_pairs:
                 matches += 1
 
@@ -446,39 +441,54 @@ class TestCrossDataset:
             f"both composition and DOI with an OBELiX entry"
         )
 
-    def test_merge_all_datasets(self, obelix_data, liion_data, laskowski_data, shonandmin_data, mchaffie_data):
+    def test_merge_all_datasets(
+        self, obelix_data, liion_data, laskowski_data, shonandmin_data, mchaffie_data
+    ):
         """Merging all five datasets with duplicate removal should produce a
         result whose length is strictly less than the naive sum of individual
         dataset lengths, since overlapping entries exist."""
         naive_total = (
-            len(obelix_data) + len(liion_data)
-            + len(laskowski_data) + len(shonandmin_data)
+            len(obelix_data)
+            + len(liion_data)
+            + len(laskowski_data)
+            + len(shonandmin_data)
             + len(mchaffie_data)
         )
         merged = Dataset.merge_datasets(
-            obelix_data, liion_data, laskowski_data, shonandmin_data,
+            obelix_data,
+            liion_data,
+            laskowski_data,
+            shonandmin_data,
             mchaffie_data,
             remove_duplicates=True,
         )
         assert len(merged) > 0, "Merged dataset is empty"
-        assert len(merged) < naive_total, (
-            f"Expected merged length ({len(merged)}) to be less than naive sum ({naive_total})"
-        )
+        assert (
+            len(merged) < naive_total
+        ), f"Expected merged length ({len(merged)}) to be less than naive sum ({naive_total})"
 
-    def test_merge_removes_duplicates(self, obelix_data, liion_data, laskowski_data, shonandmin_data, mchaffie_data):
+    def test_merge_removes_duplicates(
+        self, obelix_data, liion_data, laskowski_data, shonandmin_data, mchaffie_data
+    ):
         """Merging with remove_duplicates=True should produce strictly fewer
         rows than merging with remove_duplicates=False, confirming that
         cross-dataset duplicates exist and are removed."""
         merged_with = Dataset.merge_datasets(
-            obelix_data, liion_data, laskowski_data, shonandmin_data,
+            obelix_data,
+            liion_data,
+            laskowski_data,
+            shonandmin_data,
             mchaffie_data,
             remove_duplicates=True,
         )
         merged_without = Dataset.merge_datasets(
-            obelix_data, liion_data, laskowski_data, shonandmin_data,
+            obelix_data,
+            liion_data,
+            laskowski_data,
+            shonandmin_data,
             mchaffie_data,
             remove_duplicates=False,
         )
-        assert len(merged_with) < len(merged_without), (
-            f"Expected deduplicated ({len(merged_with)}) < raw merge ({len(merged_without)})"
-        )
+        assert len(merged_with) < len(
+            merged_without
+        ), f"Expected deduplicated ({len(merged_with)}) < raw merge ({len(merged_without)})"

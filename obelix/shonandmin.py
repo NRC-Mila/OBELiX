@@ -1,12 +1,13 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 from .dataset import Dataset
 from .shon_min import clean_shon_min
 
 
 class ShonAndMin(Dataset):
-    '''
+    """
     ShonAndMin dataset class.
 
     Loads ionic conductivity data from the supplementary information of
@@ -15,12 +16,20 @@ class ShonAndMin(Dataset):
 
     Attributes:
         dataframe (pd.DataFrame): DataFrame containing the dataset.
-    '''
+    """
 
-    def __init__(self, data_path="./obelixdata/shonandmin", no_cifs=False,
-                 clean_data=True, commit_id=None, keep_min_conductivity=True,
-                 rename_columns=True, room_temp_only=True, local=False):
-        '''
+    def __init__(
+        self,
+        data_path="./obelixdata/shonandmin",
+        no_cifs=False,
+        clean_data=True,
+        commit_id=None,
+        keep_min_conductivity=True,
+        rename_columns=True,
+        room_temp_only=True,
+        local=False,
+    ):
+        """
         Loads and cleans the ShonAndMin dataset.
 
         Parameters:
@@ -36,7 +45,7 @@ class ShonAndMin(Dataset):
             room_temp_only: If True, filter for rows within 25 +/- 7 C.
             local: If True, read from the repo's bundled data directory
                 instead of downloading from ACS.
-        '''
+        """
         self.data_path = Path(data_path)
         self.data_file = self.data_path / "sheet2.csv"
 
@@ -50,17 +59,19 @@ class ShonAndMin(Dataset):
             df = clean_shon_min(df)
 
         if rename_columns:
-            df = df.rename(columns={
-                'Name': 'Reduced Composition',
-                'Ionic Conductivity': 'Ionic conductivity (S cm-1)',
-            })
+            df = df.rename(
+                columns={
+                    "Name": "Reduced Composition",
+                    "Ionic Conductivity": "Ionic conductivity (S cm-1)",
+                }
+            )
 
         if keep_min_conductivity:
             # Keep only one entry per unique (Reduced Composition, DOI) pair,
             # selecting the row with the minimum Ionic Conductivity.
             df = df.loc[
-                df.groupby(['Reduced Composition', 'DOI'])[
-                    'Ionic conductivity (S cm-1)'
+                df.groupby(["Reduced Composition", "DOI"])[
+                    "Ionic conductivity (S cm-1)"
                 ].idxmin()
             ]
 
@@ -70,8 +81,9 @@ class ShonAndMin(Dataset):
             temp_min = room_temp - tolerance
             temp_max = room_temp + tolerance
             if "temperature" in df.columns:
-                df = df[(df["temperature"] >= temp_min)
-                        & (df["temperature"] <= temp_max)]
+                df = df[
+                    (df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)
+                ]
 
         super().__init__(df)
 
@@ -81,7 +93,9 @@ class ShonAndMin(Dataset):
 
         if local:
             # Read from the repo's bundled data directory
-            repo_file = Path(__file__).parent.parent / "data" / "misc" / "ao3c01424_si_001.xlsx"
+            repo_file = (
+                Path(__file__).parent.parent / "data" / "misc" / "ao3c01424_si_001.xlsx"
+            )
             df = pd.read_excel(repo_file, sheet_name="Sheet2")
         else:
             # Download directly from ACS supplementary information
@@ -94,7 +108,7 @@ class ShonAndMin(Dataset):
         df.to_csv(output_path / "sheet2.csv", index=False)
 
     def read_data(self, data_path, no_cifs=False):
-        '''Reads the ShonAndMin dataset.'''
+        """Reads the ShonAndMin dataset."""
         return pd.read_csv(data_path / "sheet2.csv")
 
     def remove_obelix(self, obelix_object):

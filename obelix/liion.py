@@ -1,9 +1,9 @@
 import io
 import urllib.request
 import warnings
+from pathlib import Path
 
 import pandas as pd
-from pathlib import Path
 
 from .dataset import Dataset
 
@@ -19,7 +19,7 @@ _LIVERPOOL_URL = "https://pcwww.liv.ac.uk/~msd30/lmds/LiIonDatabase.csv"
 
 
 class LiIon(Dataset):
-    '''
+    """
     LiIon dataset class.
 
     Data originally published by Hargreaves et al. (npj Computational
@@ -30,10 +30,18 @@ class LiIon(Dataset):
 
     Attributes:
         dataframe (pd.DataFrame): DataFrame containing the dataset.
-    '''
+    """
 
-    def __init__(self, data_path="./obelixdata/liion", no_cifs=False, commit_id=None, rename_columns=True, room_temp_only=True, local=False):
-        '''
+    def __init__(
+        self,
+        data_path="./obelixdata/liion",
+        no_cifs=False,
+        commit_id=None,
+        rename_columns=True,
+        room_temp_only=True,
+        local=False,
+    ):
+        """
         Loads the LiIon dataset.
 
         Parameters:
@@ -44,7 +52,7 @@ class LiIon(Dataset):
             room_temp_only: If True, filter for rows within 25 +/- 7 C.
             local: If True, copy from the repo's bundled data directory
                 instead of downloading.
-        '''
+        """
 
         self.data_path = Path(data_path)
         self.data_file = self.data_path / "LiIonDatabase.csv"
@@ -56,8 +64,14 @@ class LiIon(Dataset):
         df = self.read_data(self.data_path, no_cifs)
 
         if rename_columns:
-            df = df.rename(columns={'target': 'Ionic conductivity (S cm-1)', 'composition' : 'Reduced Composition', 'source' : 'DOI',
-            'family' : 'Family'})
+            df = df.rename(
+                columns={
+                    "target": "Ionic conductivity (S cm-1)",
+                    "composition": "Reduced Composition",
+                    "source": "DOI",
+                    "family": "Family",
+                }
+            )
 
         if room_temp_only:
             # Filter for temperatures within room temperature range
@@ -68,7 +82,9 @@ class LiIon(Dataset):
 
             # Keep rows where 'temperature' is within [temp_min, temp_max]
             if "temperature" in df.columns:
-                df = df[(df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)]
+                df = df[
+                    (df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)
+                ]
 
         super().__init__(df)
 
@@ -79,21 +95,25 @@ class LiIon(Dataset):
 
         if local:
             import shutil
-            repo_file = Path(__file__).parent.parent / "data" / "misc" / "LiIonDatabase.csv"
+
+            repo_file = (
+                Path(__file__).parent.parent / "data" / "misc" / "LiIonDatabase.csv"
+            )
             shutil.copy2(repo_file, dest)
             return
 
         # Try the GitHub mirror first, fall back to University of Liverpool
-        for label, url in [("GitHub mirror", _GITHUB_URL),
-                           ("University of Liverpool", _LIVERPOOL_URL)]:
+        for label, url in [
+            ("GitHub mirror", _GITHUB_URL),
+            ("University of Liverpool", _LIVERPOOL_URL),
+        ]:
             try:
                 df = self._read_csv_from_url(url)
                 df.to_csv(dest, index=False)
                 return
             except Exception as exc:
                 warnings.warn(
-                    f"Failed to download LiIon data from {label} "
-                    f"({url}): {exc}"
+                    f"Failed to download LiIon data from {label} " f"({url}): {exc}"
                 )
 
         raise RuntimeError(
@@ -127,7 +147,7 @@ class LiIon(Dataset):
         return pd.read_csv(io.StringIO("".join(lines[skip:])))
 
     def read_data(self, data_path, no_cifs=False):
-        '''Reads the LiIon dataset.'''
+        """Reads the LiIon dataset."""
         df = pd.read_csv(self.data_path / "LiIonDatabase.csv")
         return df
 
@@ -151,5 +171,3 @@ class LiIon(Dataset):
         liion_ids = ob_df["Liion ID"].dropna().astype(int)
         after_id = Dataset(self.dataframe.drop(index=liion_ids, errors="ignore"))
         return after_id.remove_matching_entries(obelix_object)
-
-
