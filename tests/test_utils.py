@@ -3,10 +3,10 @@ import pytest
 
 from obelix.utils import is_same_formula, replace_text_IC
 
-
 # ---------------------------------------------------------------------------
 # is_same_formula tests
 # ---------------------------------------------------------------------------
+
 
 def test_is_same_formula_identical_strings():
     """Two identical formula strings should be recognized as the same."""
@@ -96,6 +96,7 @@ def test_is_same_formula_parenthetical_equivalent():
 # ---------------------------------------------------------------------------
 # replace_text_IC tests
 # ---------------------------------------------------------------------------
+
 
 def test_replace_text_IC_below_detection_1e10():
     """The string '<1E-10' should be replaced with the default value."""

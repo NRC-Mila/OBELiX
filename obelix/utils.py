@@ -28,6 +28,7 @@ def replace_text_IC(cond, value=1e-15):
             print("WARNING: IC is not a float:", cond)
     return cond
 
+
 def is_same_formula(formula_string1, formula_string2):
     """
     Compares two formulas to determine if they represent the same composition.
@@ -44,4 +45,3 @@ def is_same_formula(formula_string1, formula_string2):
         return c1.reduced_formula == c2.reduced_formula
     except Exception:
         return False
-

@@ -9,15 +9,15 @@ Fixtures that return ``Dataset`` objects are explicitly named with the
 ``dataset_obj_`` prefix so the distinction is always clear at the call site.
 """
 
-import pytest
 import pandas as pd
+import pytest
 
 from obelix.dataset import Dataset
-
 
 # ---------------------------------------------------------------------------
 # Upstream pytest configuration (--rundev flag for dev tests)
 # ---------------------------------------------------------------------------
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -46,6 +46,7 @@ def pytest_collection_modifyitems(config, items):
 # Core synthetic DataFrames
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def small_dataset_a():
     """A small synthetic dataset for unit testing.
@@ -53,12 +54,14 @@ def small_dataset_a():
     Contains 5 entries with a mix of compositions. One DOI (index 3, KBr)
     is intentionally ``None`` to exercise missing-DOI handling.
     """
-    df = pd.DataFrame({
-        'Reduced Composition': ['Li7La3Zr2O12', 'NaCl', 'Li3PS4', 'KBr', 'Li2O'],
-        'Ionic conductivity (S cm-1)': [1e-4, 1e-6, 1e-3, 1e-5, 1e-7],
-        'DOI': ['10.1234/a', '10.1234/b', '10.1234/c', None, '10.1234/e'],
-        'Space group #': [142, 225, 36, 225, 166],
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": ["Li7La3Zr2O12", "NaCl", "Li3PS4", "KBr", "Li2O"],
+            "Ionic conductivity (S cm-1)": [1e-4, 1e-6, 1e-3, 1e-5, 1e-7],
+            "DOI": ["10.1234/a", "10.1234/b", "10.1234/c", None, "10.1234/e"],
+            "Space group #": [142, 225, 36, 225, 166],
+        }
+    )
     return df
 
 
@@ -72,11 +75,13 @@ def small_dataset_b():
 
     Non-overlapping entries: LiF, CaF2.
     """
-    df = pd.DataFrame({
-        'Reduced Composition': ['Li7La3Zr2O12', 'LiF', 'Li3PS4', 'CaF2'],
-        'Ionic conductivity (S cm-1)': [2e-4, 5e-6, 1e-3, 3e-5],
-        'DOI': ['10.1234/a', '10.1234/f', '10.1234/g', '10.1234/h'],
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": ["Li7La3Zr2O12", "LiF", "Li3PS4", "CaF2"],
+            "Ionic conductivity (S cm-1)": [2e-4, 5e-6, 1e-3, 3e-5],
+            "DOI": ["10.1234/a", "10.1234/f", "10.1234/g", "10.1234/h"],
+        }
+    )
     return df
 
 
@@ -91,11 +96,13 @@ def dataset_with_nan_dois():
     Useful for verifying that the dedup logic correctly propagates removal to
     rows whose DOI is missing but whose composition matches a known duplicate.
     """
-    df = pd.DataFrame({
-        'Reduced Composition': ['Li7La3Zr2O12', 'Li7La3Zr2O12', 'NaCl', 'NaCl'],
-        'Ionic conductivity (S cm-1)': [1e-4, 2e-4, 1e-6, 3e-6],
-        'DOI': ['10.1234/a', None, '10.1234/b', None],
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": ["Li7La3Zr2O12", "Li7La3Zr2O12", "NaCl", "NaCl"],
+            "Ionic conductivity (S cm-1)": [1e-4, 2e-4, 1e-6, 3e-6],
+            "DOI": ["10.1234/a", None, "10.1234/b", None],
+        }
+    )
     return df
 
 
@@ -110,11 +117,13 @@ def dataset_with_equivalent_formulas():
     Both pairs share DOIs within the pair, so dedup should recognise them as
     duplicates if the implementation normalises formulas.
     """
-    df = pd.DataFrame({
-        'Reduced Composition': ['Li2O', 'Li4O2', 'Na2Cl2', 'NaCl'],
-        'Ionic conductivity (S cm-1)': [1e-7, 2e-7, 1e-6, 3e-6],
-        'DOI': ['10.1234/a', '10.1234/a', '10.1234/b', '10.1234/b'],
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": ["Li2O", "Li4O2", "Na2Cl2", "NaCl"],
+            "Ionic conductivity (S cm-1)": [1e-7, 2e-7, 1e-6, 3e-6],
+            "DOI": ["10.1234/a", "10.1234/a", "10.1234/b", "10.1234/b"],
+        }
+    )
     return df
 
 
@@ -125,17 +134,20 @@ def empty_dataset():
     Useful for verifying that methods handle zero-row inputs gracefully
     without raising exceptions.
     """
-    df = pd.DataFrame({
-        'Reduced Composition': pd.Series(dtype=str),
-        'Ionic conductivity (S cm-1)': pd.Series(dtype=float),
-        'DOI': pd.Series(dtype=str),
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": pd.Series(dtype=str),
+            "Ionic conductivity (S cm-1)": pd.Series(dtype=float),
+            "DOI": pd.Series(dtype=str),
+        }
+    )
     return df
 
 
 # ---------------------------------------------------------------------------
 # Additional edge-case DataFrames
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def single_entry_dataset():
@@ -144,11 +156,13 @@ def single_entry_dataset():
     Boundary-condition fixture: tests that iteration, dedup, indexing, and
     merge logic all handle the minimal non-empty case correctly.
     """
-    df = pd.DataFrame({
-        'Reduced Composition': ['Li7La3Zr2O12'],
-        'Ionic conductivity (S cm-1)': [1e-4],
-        'DOI': ['10.1234/a'],
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": ["Li7La3Zr2O12"],
+            "Ionic conductivity (S cm-1)": [1e-4],
+            "DOI": ["10.1234/a"],
+        }
+    )
     return df
 
 
@@ -160,17 +174,20 @@ def dataset_with_all_nan_dois():
     confirm any matches and therefore should *not* remove any rows (the
     current implementation requires at least one non-NaN DOI match).
     """
-    df = pd.DataFrame({
-        'Reduced Composition': ['Li7La3Zr2O12', 'NaCl', 'Li3PS4', 'Li7La3Zr2O12'],
-        'Ionic conductivity (S cm-1)': [1e-4, 1e-6, 1e-3, 2e-4],
-        'DOI': [None, None, None, None],
-    })
+    df = pd.DataFrame(
+        {
+            "Reduced Composition": ["Li7La3Zr2O12", "NaCl", "Li3PS4", "Li7La3Zr2O12"],
+            "Ionic conductivity (S cm-1)": [1e-4, 1e-6, 1e-3, 2e-4],
+            "DOI": [None, None, None, None],
+        }
+    )
     return df
 
 
 # ---------------------------------------------------------------------------
 # Dataset *objects* (wrapping DataFrames)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def dataset_obj_a(small_dataset_a):

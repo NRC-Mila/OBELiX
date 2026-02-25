@@ -1,7 +1,9 @@
 import re
+
 import numpy as np
 import pandas as pd
 from pymatgen.core import Composition
+
 
 # String normalization & scientific‐notation parser
 def normalize_string(s: str) -> str:
@@ -10,12 +12,13 @@ def normalize_string(s: str) -> str:
         "â€“": "-",
         "—": "-",
         "–": "-",
-        "−": "-",    # proper minus sign
-        "Ã": "×"
+        "−": "-",  # proper minus sign
+        "Ã": "×",
     }
     for bad, good in replacements.items():
         s = s.replace(bad, good)
     return s
+
 
 #  Convert a wide variety of human‐written scientific notations and simple ranges into a float (or np.nan if unconvertible).
 def convert_scientific_string(s) -> float:
@@ -69,16 +72,22 @@ def convert_scientific_string(s) -> float:
         return (a + b) / 2.0
 
     # Standard sci notation "coef × 10 - exp"
-    m_sci = re.match(r"^\s*(?P<coef>-?\d+(?:\.\d+)?)?\s*[×x*]?\s*10\s*-\s*(?P<exp>\d+)\s*$", s)
+    m_sci = re.match(
+        r"^\s*(?P<coef>-?\d+(?:\.\d+)?)?\s*[×x*]?\s*10\s*-\s*(?P<exp>\d+)\s*$", s
+    )
     if m_sci:
-        coef = float(m_sci.group("coef")) if m_sci.group("coef") not in (None, "") else 1.0
+        coef = (
+            float(m_sci.group("coef")) if m_sci.group("coef") not in (None, "") else 1.0
+        )
         exp = int(m_sci.group("exp"))
         return coef * 10 ** (-exp)
 
     # Search anywhere for sci pattern
     m_any = re.search(r"(?P<coef>-?\d+(?:\.\d+)?)?\s*[×x*]?\s*10\s*-\s*(?P<exp>\d+)", s)
     if m_any:
-        coef = float(m_any.group("coef")) if m_any.group("coef") not in (None, "") else 1.0
+        coef = (
+            float(m_any.group("coef")) if m_any.group("coef") not in (None, "") else 1.0
+        )
         exp = int(m_any.group("exp"))
         return coef * 10 ** (-exp)
 
@@ -88,14 +97,10 @@ def convert_scientific_string(s) -> float:
     except ValueError:
         return np.nan
 
+
 # Unit conversion
-UNIT_CONVERSION = {
-    "S/cm":    1,
-    "Scm-1":   1,
-    "mScm−1":  1e-3,
-    "mScm-1":  1e-3,
-    "mS/cm":   1e-3
-}
+UNIT_CONVERSION = {"S/cm": 1, "Scm-1": 1, "mScm−1": 1e-3, "mScm-1": 1e-3, "mS/cm": 1e-3}
+
 
 def convert_to_S_cm(unit: str, value: float) -> float:
     """Convert given value into S/cm based on its raw unit."""
@@ -103,6 +108,7 @@ def convert_to_S_cm(unit: str, value: float) -> float:
     if factor is None:
         return value
     return value * factor
+
 
 # Formula validation
 def is_valid_formula(formula: str) -> bool:
@@ -113,14 +119,19 @@ def is_valid_formula(formula: str) -> bool:
     except Exception:
         return False
 
+
 def clean_shon_min(df):
     # 1) Parse ionic conductivity strings
-    df["Ionic Conductivity Numeric"] = df["Ionic Conductivity"].apply(convert_scientific_string)
+    df["Ionic Conductivity Numeric"] = df["Ionic Conductivity"].apply(
+        convert_scientific_string
+    )
 
     # 2) Convert to standard units (S/cm)
     df["Ionic Conductivity Numeric (S/cm)"] = df.apply(
-        lambda r: convert_to_S_cm(r.get("Raw_unit", ""), r["Ionic Conductivity Numeric"]),
-        axis=1
+        lambda r: convert_to_S_cm(
+            r.get("Raw_unit", ""), r["Ionic Conductivity Numeric"]
+        ),
+        axis=1,
     )
 
     # 3) Validate & filter rows
@@ -147,4 +158,3 @@ def clean_shon_min(df):
     )
 
     return df_clean
-

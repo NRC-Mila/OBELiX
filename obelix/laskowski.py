@@ -1,19 +1,27 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 from .dataset import Dataset
 
 
 class Laskowski(Dataset):
-    '''
+    """
     Laskowski dataset class.
 
     Attributes:
         dataframe (pd.DataFrame): DataFrame containing the dataset.
-    '''
+    """
 
-    def __init__(self, data_path="./obelixdata/laskowski", no_cifs=False, commit_id=None, rename_columns=True, local=False):
-        '''
+    def __init__(
+        self,
+        data_path="./obelixdata/laskowski",
+        no_cifs=False,
+        commit_id=None,
+        rename_columns=True,
+        local=False,
+    ):
+        """
         Loads the Laskowski dataset.
 
         Parameters:
@@ -23,7 +31,7 @@ class Laskowski(Dataset):
             rename_columns: If True, rename columns to the standard OBELiX schema.
             local: If True, copy from the repo's data/misc/ directory
                 instead of downloading from GitHub.
-        '''
+        """
 
         self.data_path = Path(data_path)
         self.data_file = self.data_path / "laskowski_with_dois.csv"
@@ -35,10 +43,13 @@ class Laskowski(Dataset):
         df = self.read_data(self.data_path, no_cifs)
 
         if rename_columns:
-            df = df.rename(columns={
-                'σ(RT)(S cm-1)': 'Ionic conductivity (S cm-1)',
-                'Structure': 'Reduced Composition', 'space group': 'Space group'
-            })
+            df = df.rename(
+                columns={
+                    "σ(RT)(S cm-1)": "Ionic conductivity (S cm-1)",
+                    "Structure": "Reduced Composition",
+                    "space group": "Space group",
+                }
+            )
 
         super().__init__(df)
 
@@ -49,7 +60,13 @@ class Laskowski(Dataset):
         if local:
             # Copy from the repo's bundled data directory
             import shutil
-            repo_file = Path(__file__).parent.parent / "data" / "misc" / "laskowski_with_dois.csv"
+
+            repo_file = (
+                Path(__file__).parent.parent
+                / "data"
+                / "misc"
+                / "laskowski_with_dois.csv"
+            )
             shutil.copy2(repo_file, output_path / "laskowski_with_dois.csv")
         else:
             # laskowski_with_dois.csv is a curated version of the Laskowski
@@ -61,7 +78,7 @@ class Laskowski(Dataset):
             df.to_csv(output_path / "laskowski_with_dois.csv", index=False)
 
     def read_data(self, data_path, no_cifs=False):
-        '''Reads the Laskowski dataset.'''
+        """Reads the Laskowski dataset."""
         data = pd.read_csv(self.data_path / "laskowski_with_dois.csv")
         return data
 

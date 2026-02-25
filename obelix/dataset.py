@@ -1,21 +1,19 @@
 import pandas as pd
-
 from pymatgen.core import Composition
 
 from .utils import round_partial_occ
 
-
 # Columns that merge_datasets will keep when present in ALL input datasets.
 _RELEVANT_COLUMNS = [
-    'Reduced Composition',
-    'Ionic conductivity (S cm-1)',
-    'Space group #',
-    'DOI',
+    "Reduced Composition",
+    "Ionic conductivity (S cm-1)",
+    "Space group #",
+    "DOI",
 ]
 
 
-class Dataset():
-    '''
+class Dataset:
+    """
     Dataset class. This is a wrapper around a pandas DataFrame (which cannot be inhertided).
 
     Attributes:
@@ -29,7 +27,7 @@ class Dataset():
         with_cifs(): Returns a new Dataset object with only the entries that have a CIF.
         round_partial(): Returns a new Datset where the partial occupancies of the sites in the structures are rounded to the nearest integer.
 
-    '''
+    """
 
     def __init__(self, dataframe):
         self.dataframe = dataframe
@@ -84,8 +82,9 @@ class Dataset():
         Returns:
             A new :class:`Dataset` with rows from both operands.
         """
-        common_cols = [c for c in self.dataframe.columns
-                       if c in other.dataframe.columns]
+        common_cols = [
+            c for c in self.dataframe.columns if c in other.dataframe.columns
+        ]
         combined = pd.concat(
             [self.dataframe[common_cols], other.dataframe[common_cols]],
             ignore_index=True,
@@ -112,8 +111,8 @@ class Dataset():
             except Exception:
                 return f
 
-        canonical = combined.dataframe['Reduced Composition'].apply(_canonical)
-        deduped = combined.dataframe[~canonical.duplicated(keep='first')]
+        canonical = combined.dataframe["Reduced Composition"].apply(_canonical)
+        deduped = combined.dataframe[~canonical.duplicated(keep="first")]
         return Dataset(deduped)
 
     @staticmethod
@@ -164,8 +163,8 @@ class Dataset():
                 except Exception:
                     return f
 
-            canonical = combined['Reduced Composition'].apply(_canonical)
-            combined = combined[~canonical.duplicated(keep='first')]
+            canonical = combined["Reduced Composition"].apply(_canonical)
+            combined = combined[~canonical.duplicated(keep="first")]
 
         return Dataset(combined)
 
@@ -200,8 +199,8 @@ class Dataset():
         # Build lookup: canonical reduced_formula → set of non-NaN DOIs
         other_lookup: dict[str, set[str]] = {}
         for _, row in other_df.iterrows():
-            comp = row.get('Reduced Composition')
-            doi = row.get('DOI')
+            comp = row.get("Reduced Composition")
+            doi = row.get("DOI")
             try:
                 key = Composition(comp).reduced_formula
             except Exception:
@@ -214,8 +213,8 @@ class Dataset():
         # Determine which rows in self to remove
         indices_to_remove = set()
         for i, self_row in self.dataframe.iterrows():
-            self_comp = self_row.get('Reduced Composition')
-            self_doi = self_row.get('DOI')
+            self_comp = self_row.get("Reduced Composition")
+            self_doi = self_row.get("DOI")
             try:
                 self_key = Composition(self_comp).reduced_formula
             except Exception:
