@@ -1,19 +1,14 @@
 """The Shon and Min dataset contains many particulars that we manually normalize here to be cross-compatible with OBELiX
 """
 
-from pathlib import Path
-
-import pandas as pd
-
-from .dataset import Dataset
-
-
 import re
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from pymatgen.core import Composition
 
+from .dataset import Dataset
 
 # Unit conversion
 UNIT_CONVERSION = {"S/cm": 1, "Scm-1": 1, "mScm−1": 1e-3, "mScm-1": 1e-3, "mS/cm": 1e-3}

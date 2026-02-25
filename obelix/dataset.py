@@ -154,9 +154,7 @@ class Dataset:
         other_matches = other_part[other_part["_canonical"].isin(shared)]
 
         # Combine (self first, matching __add__ concatenation order)
-        report = pd.concat(
-            [self_matches, other_matches], ignore_index=True
-        )
+        report = pd.concat([self_matches, other_matches], ignore_index=True)
         report = report.sort_values("_canonical").reset_index(drop=True)
 
         # Mark which rows would survive dedup (first per canonical formula)

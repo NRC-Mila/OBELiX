@@ -458,8 +458,7 @@ class TestCrossDataset:
         all_cols = obelix_cols | liion_cols
         result_cols = set(combined.dataframe.columns)
         assert result_cols == all_cols, (
-            f"Expected all columns from both datasets {all_cols}, "
-            f"got {result_cols}"
+            f"Expected all columns from both datasets {all_cols}, " f"got {result_cols}"
         )
 
     def test_no_self_duplicates_after_remove_obelix(self, liion_data, obelix_data):

@@ -1,9 +1,10 @@
-import pandas as pd
-from pathlib import Path
 import shutil
 import tarfile
 import zipfile
+from pathlib import Path
 from zipfile import ZIP_DEFLATED
+
+import pandas as pd
 
 DATAPATH = Path(__file__).parents[1]
 
@@ -34,13 +35,17 @@ test_data.to_excel(download_path / "test.xlsx")
 with tarfile.open(download_path / "all_cifs.tar.gz", "w:gz") as tar:
     tar.add(DATAPATH / "randomized_cifs", arcname="all_randomized_cifs")
 
-all_zip =  zipfile.ZipFile(download_path / "all_cifs.zip", "w", compression=ZIP_DEFLATED)
+all_zip = zipfile.ZipFile(download_path / "all_cifs.zip", "w", compression=ZIP_DEFLATED)
 
 train_tar = tarfile.open(download_path / "train_cifs.tar.gz", "w:gz")
 test_tar = tarfile.open(download_path / "test_cifs.tar.gz", "w:gz")
 
-train_zip = zipfile.ZipFile(download_path / "train_cifs.zip", "w", compression=ZIP_DEFLATED)
-test_zip = zipfile.ZipFile(download_path / "test_cifs.zip", "w", compression=ZIP_DEFLATED)
+train_zip = zipfile.ZipFile(
+    download_path / "train_cifs.zip", "w", compression=ZIP_DEFLATED
+)
+test_zip = zipfile.ZipFile(
+    download_path / "test_cifs.zip", "w", compression=ZIP_DEFLATED
+)
 
 for idx in data.index:
     name = (DATAPATH / "randomized_cifs" / idx).with_suffix(".cif")

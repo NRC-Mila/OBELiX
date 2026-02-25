@@ -221,9 +221,7 @@ class TestIter:
 
 
 class TestAdd:
-    def test_add_deduplicates_shared_compositions(
-        self, sample_dataset, other_dataset
-    ):
+    def test_add_deduplicates_shared_compositions(self, sample_dataset, other_dataset):
         """Shared compositions (Li7La3Zr2O12 and Li3PS4) are deduplicated.
         sample has 4 unique, other has 3 but 2 overlap → 5 unique."""
         combined = sample_dataset + other_dataset
@@ -233,9 +231,7 @@ class TestAdd:
         combined = sample_dataset + other_dataset
         assert isinstance(combined, Dataset)
 
-    def test_add_different_columns_keeps_all(
-        self, sample_dataset, extra_cols_dataset
-    ):
+    def test_add_different_columns_keeps_all(self, sample_dataset, extra_cols_dataset):
         """When columns differ, all unique columns are retained."""
         combined = sample_dataset + extra_cols_dataset
         assert "Reduced Composition" in combined.labels
