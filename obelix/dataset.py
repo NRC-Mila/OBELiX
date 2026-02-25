@@ -149,10 +149,15 @@ class Dataset():
 
         if remove_duplicates:
             # Use canonical reduced_formula for dedup
-            canonical = combined['Reduced Composition'].apply(
-                lambda f: Composition(f).reduced_formula
-                if pd.notna(f) else f
-            )
+            def _canonical(f):
+                if pd.isna(f):
+                    return f
+                try:
+                    return Composition(f).reduced_formula
+                except Exception:
+                    return f
+
+            canonical = combined['Reduced Composition'].apply(_canonical)
             combined = combined[~canonical.duplicated(keep='first')]
 
         return Dataset(combined)

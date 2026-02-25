@@ -11,18 +11,26 @@ class LiIon(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./liion_rawdata", no_cifs=False, commit_id=None, rename_columns=True, room_temp_only=True):
+    def __init__(self, data_path="./liion_rawdata", no_cifs=False, commit_id=None, rename_columns=True, room_temp_only=True, local=False):
         '''
         Loads the LiIon dataset.
-        
+
+        Parameters:
+            data_path: Directory to cache downloaded data.
+            no_cifs: Unused, kept for API compatibility.
+            commit_id: Unused, kept for API compatibility.
+            rename_columns: If True, rename columns to the standard OBELiX schema.
+            room_temp_only: If True, filter for rows within 25 +/- 7 C.
+            local: If True, download from the OBELiX GitHub mirror instead
+                of the original external source.
         '''
-        
+
         self.data_path = Path(data_path)
         self.data_file = self.data_path / "LiIonDatabase.csv"
-        
+
         # Download data if it does not exist
         if not self.data_file.exists():
-            self.download_data(self.data_path, commit_id=commit_id)
+            self.download_data(self.data_path, commit_id=commit_id, local=local)
 
         df = self.read_data(self.data_path, no_cifs)
 
@@ -64,12 +72,14 @@ class LiIon(Dataset):
     def remove_obelix(self, obelix_object):
         """Remove entries from the LiIon dataset that are present in OBELiX.
 
-        Uses the ``'Liion ID'`` column in the OBELiX dataset to identify
-        which LiIon rows to drop (by index).
+        First drops rows by ``'Liion ID'`` index matching, then removes
+        any remaining duplicates by composition + DOI matching via
+        :meth:`~obelix.dataset.Dataset.remove_matching_entries`.
 
         Parameters:
             obelix_object: An OBELiX :class:`Dataset` whose dataframe
-                contains a ``'Liion ID'`` column.
+                contains ``'Liion ID'``, ``'Reduced Composition'``, and
+                ``'DOI'`` columns.
 
         Returns:
             A new :class:`Dataset` with the matching entries removed.
@@ -77,7 +87,7 @@ class LiIon(Dataset):
         """
         ob_df = obelix_object.dataframe
         liion_ids = ob_df["Liion ID"].dropna().astype(int)
-        new_df = self.dataframe.drop(index=liion_ids, errors="ignore")
-        return Dataset(new_df)
+        after_id = Dataset(self.dataframe.drop(index=liion_ids, errors="ignore"))
+        return after_id.remove_matching_entries(obelix_object)
 
 

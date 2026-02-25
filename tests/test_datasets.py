@@ -32,34 +32,52 @@ def obelix_data():
 
 
 @pytest.fixture(scope="session")
-def liion_data():
-    """Load the LiIon dataset with default settings (room_temp_only=True)."""
-    return LiIon()
+def liion_data(tmp_path_factory):
+    """Load the LiIon dataset with default settings (room_temp_only=True).
+
+    Uses local=True to download from the OBELiX GitHub mirror, avoiding
+    dependence on the external Liverpool server.
+    """
+    path = str(tmp_path_factory.mktemp("liion"))
+    return LiIon(data_path=path, local=True)
 
 
 @pytest.fixture(scope="session")
-def liion_raw_data():
+def liion_raw_data(tmp_path_factory):
     """Load the LiIon dataset with all temperatures included."""
-    return LiIon(room_temp_only=False)
+    path = str(tmp_path_factory.mktemp("liion_raw"))
+    return LiIon(data_path=path, room_temp_only=False, local=True)
 
 
 @pytest.fixture(scope="session")
-def laskowski_data():
-    """Load the Laskowski dataset with default settings."""
-    return Laskowski()
+def laskowski_data(tmp_path_factory):
+    """Load the Laskowski dataset with default settings.
+
+    Uses local=True to read from the repo's bundled data directory,
+    avoiding dependence on the remote GitHub raw URL.
+    """
+    path = str(tmp_path_factory.mktemp("laskowski"))
+    return Laskowski(data_path=path, local=True)
 
 
 @pytest.fixture(scope="session")
-def shonandmin_data():
+def shonandmin_data(tmp_path_factory):
     """Load the ShonAndMin dataset with default settings
-    (clean_data=True, keep_min_conductivity=True)."""
-    return ShonAndMin()
+    (clean_data=True, keep_min_conductivity=True).
+
+    Uses local=True to read from the repo's bundled xlsx file,
+    avoiding the ACS paywall (403 Forbidden).
+    """
+    path = str(tmp_path_factory.mktemp("shonandmin"))
+    return ShonAndMin(data_path=path, local=True)
 
 
 @pytest.fixture(scope="session")
-def shonandmin_raw_data():
+def shonandmin_raw_data(tmp_path_factory):
     """Load the ShonAndMin dataset without cleaning or deduplication."""
-    return ShonAndMin(clean_data=False, keep_min_conductivity=False)
+    path = str(tmp_path_factory.mktemp("shonandmin_raw"))
+    return ShonAndMin(data_path=path, clean_data=False,
+                      keep_min_conductivity=False, local=True)
 
 
 # ===================================================================

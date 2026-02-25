@@ -19,7 +19,7 @@ class ShonAndMin(Dataset):
 
     def __init__(self, data_path="./shonandmin_rawdata", no_cifs=False,
                  clean_data=True, commit_id=None, keep_min_conductivity=True,
-                 rename_columns=True, room_temp_only=True):
+                 rename_columns=True, room_temp_only=True, local=False):
         '''
         Loads and cleans the ShonAndMin dataset.
 
@@ -34,13 +34,15 @@ class ShonAndMin(Dataset):
             rename_columns: If True, rename columns to the standard
                 OBELiX schema.
             room_temp_only: If True, filter for rows within 25 +/- 7 C.
+            local: If True, read from the repo's bundled data directory
+                instead of downloading from ACS.
         '''
         self.data_path = Path(data_path)
         self.data_file = self.data_path / "sheet2.csv"
 
         # Download data if it does not exist
         if not self.data_file.exists():
-            self.download_data(self.data_path, commit_id=commit_id)
+            self.download_data(self.data_path, commit_id=commit_id, local=local)
 
         df = self.read_data(self.data_path, no_cifs)
 
@@ -73,16 +75,22 @@ class ShonAndMin(Dataset):
 
         super().__init__(df)
 
-    def download_data(self, output_path, commit_id=None):
+    def download_data(self, output_path, commit_id=None, local=False):
         output_path = Path(output_path)
         output_path.mkdir(exist_ok=True)
 
-        # Download directly from ACS supplementary information
-        dataset_url = (
-            "https://pubs.acs.org/doi/suppl/10.1021/acsomega.3c01424"
-            "/suppl_file/ao3c01424_si_001.xlsx"
-        )
-        df = pd.read_excel(dataset_url, sheet_name="Sheet2")
+        if local:
+            # Read from the repo's bundled data directory
+            repo_file = Path(__file__).parent.parent / "data" / "misc" / "ao3c01424_si_001.xlsx"
+            df = pd.read_excel(repo_file, sheet_name="Sheet2")
+        else:
+            # Download directly from ACS supplementary information
+            dataset_url = (
+                "https://pubs.acs.org/doi/suppl/10.1021/acsomega.3c01424"
+                "/suppl_file/ao3c01424_si_001.xlsx"
+            )
+            df = pd.read_excel(dataset_url, sheet_name="Sheet2")
+
         df.to_csv(output_path / "sheet2.csv", index=False)
 
     def read_data(self, data_path, no_cifs=False):
