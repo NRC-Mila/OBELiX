@@ -2,7 +2,7 @@ def test_public_OBELiX():
     from obelix import OBELiX
     import shutil
 
-    shutil.rmtree("rawdata", ignore_errors=True)
+    shutil.rmtree("obelixdata", ignore_errors=True)
     obelix = OBELiX()
     assert len(obelix) == 599
     assert len(obelix.test_dataset) == 121
@@ -14,7 +14,7 @@ def test_dev_OBELiX():
     from obelix import OBELiX
     import shutil
     
-    obelix = OBELiX("rawdata_dev", dev=True)
+    obelix = OBELiX("obelixdata_dev", dev=True)
     assert len(obelix) == 599
     assert len(obelix.test_dataset) == 121
     assert len(obelix.train_dataset) == 478

@@ -17,7 +17,7 @@ class ShonAndMin(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./shonandmin_rawdata", no_cifs=False,
+    def __init__(self, data_path="./obelixdata/shonandmin", no_cifs=False,
                  clean_data=True, commit_id=None, keep_min_conductivity=True,
                  rename_columns=True, room_temp_only=True, local=False):
         '''
@@ -77,7 +77,7 @@ class ShonAndMin(Dataset):
 
     def download_data(self, output_path, commit_id=None, local=False):
         output_path = Path(output_path)
-        output_path.mkdir(exist_ok=True)
+        output_path.mkdir(parents=True, exist_ok=True)
 
         if local:
             # Read from the repo's bundled data directory

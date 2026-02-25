@@ -12,7 +12,7 @@ class Laskowski(Dataset):
         dataframe (pd.DataFrame): DataFrame containing the dataset.
     '''
 
-    def __init__(self, data_path="./laskowski_rawdata", no_cifs=False, commit_id=None, rename_columns=True, local=False):
+    def __init__(self, data_path="./obelixdata/laskowski", no_cifs=False, commit_id=None, rename_columns=True, local=False):
         '''
         Loads the Laskowski dataset.
 
@@ -44,7 +44,7 @@ class Laskowski(Dataset):
 
     def download_data(self, output_path, commit_id=None, local=False):
         output_path = Path(output_path)
-        output_path.mkdir(exist_ok=True)
+        output_path.mkdir(parents=True, exist_ok=True)
 
         if local:
             # Copy from the repo's bundled data directory

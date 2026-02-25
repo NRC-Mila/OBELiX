@@ -103,9 +103,16 @@ class Dataset():
             A new :class:`Dataset` with combined, deduplicated rows.
         """
         combined = self + other
-        canonical = combined.dataframe['Reduced Composition'].apply(
-            lambda f: Composition(f).reduced_formula if pd.notna(f) else f
-        )
+
+        def _canonical(f):
+            if pd.isna(f):
+                return f
+            try:
+                return Composition(f).reduced_formula
+            except Exception:
+                return f
+
+        canonical = combined.dataframe['Reduced Composition'].apply(_canonical)
         deduped = combined.dataframe[~canonical.duplicated(keep='first')]
         return Dataset(deduped)
 

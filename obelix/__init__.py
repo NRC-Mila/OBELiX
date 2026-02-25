@@ -28,7 +28,7 @@ class OBELiX(Dataset):
         entries (list): List of entries.
     '''
 
-    def __init__(self, data_path="./rawdata", no_cifs=False, commit_id=f"v{__version__}-data", dev=False, unspecified_low_value=1e-15):
+    def __init__(self, data_path="./obelixdata", no_cifs=False, commit_id=f"v{__version__}-data", dev=False, unspecified_low_value=1e-15):
         '''
         Loads the OBELiX dataset.
         
