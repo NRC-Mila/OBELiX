@@ -79,6 +79,9 @@ class McHaffie(Dataset):
                 }
             )
 
+        df.index = [f"MCH_{i:04d}" for i in df.index]
+        df.index.name = "ID"
+
         super().__init__(df)
 
     def download_data(self, output_path, commit_id=None, local=False):

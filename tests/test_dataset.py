@@ -221,26 +221,41 @@ class TestIter:
 
 
 class TestAdd:
-    def test_add_same_columns_combined_length(self, sample_dataset, other_dataset):
-        """Concatenating two datasets with the same columns gives the sum of
-        their lengths."""
+    def test_add_deduplicates_shared_compositions(
+        self, sample_dataset, other_dataset
+    ):
+        """Shared compositions (Li7La3Zr2O12 and Li3PS4) are deduplicated.
+        sample has 4 unique, other has 3 but 2 overlap → 5 unique."""
         combined = sample_dataset + other_dataset
-        assert len(combined) == len(sample_dataset) + len(other_dataset)
+        assert len(combined) == 5
 
     def test_add_returns_dataset_instance(self, sample_dataset, other_dataset):
         combined = sample_dataset + other_dataset
         assert isinstance(combined, Dataset)
 
-    def test_add_different_columns_keeps_common(
+    def test_add_different_columns_keeps_all(
         self, sample_dataset, extra_cols_dataset
     ):
-        """When columns differ, only the common columns are kept."""
+        """When columns differ, all unique columns are retained."""
         combined = sample_dataset + extra_cols_dataset
         assert "Reduced Composition" in combined.labels
         assert "Ionic conductivity (S cm-1)" in combined.labels
         assert "DOI" in combined.labels
-        # "Space group #" is only in extra_cols_dataset, not in sample
-        assert "Space group #" not in combined.labels
+        # "Space group #" is in extra_cols_dataset and should be kept
+        assert "Space group #" in combined.labels
+
+    def test_add_missing_columns_filled_with_nan(
+        self, sample_dataset, extra_cols_dataset
+    ):
+        """Rows from a dataset lacking a column get NaN in that column."""
+        combined = sample_dataset + extra_cols_dataset
+        # sample_dataset rows don't have "Space group #", so those should be NaN
+        sg = combined.dataframe["Space group #"]
+        # The first 4 rows come from sample_dataset (no Space group)
+        assert pd.isna(sg.iloc[0])
+        # extra_cols rows have Space group values
+        non_null = sg.dropna()
+        assert len(non_null) > 0
 
     def test_add_originals_unchanged(self, sample_dataset, other_dataset):
         """Adding datasets does not mutate either operand."""
@@ -265,142 +280,18 @@ class TestAdd:
         combined = empty_dataset + empty_dataset
         assert len(combined) == 0
 
-    def test_add_no_dedup(self, sample_dataset):
-        """__add__ does NOT deduplicate -- duplicates should be preserved."""
+    def test_add_dedup_self_plus_self(self, sample_dataset):
+        """Adding a dataset to itself deduplicates all rows."""
         combined = sample_dataset + sample_dataset
-        assert len(combined) == 2 * len(sample_dataset)
+        assert len(combined) == len(sample_dataset)
 
     def test_add_data_values_preserved(self, sample_dataset, other_dataset):
-        """All data values from both datasets appear in the result."""
+        """All unique compositions from both datasets appear in the result."""
         combined = sample_dataset + other_dataset
         comps = list(combined.dataframe["Reduced Composition"])
         assert "Li7La3Zr2O12" in comps
         assert "NaCl" in comps
         assert "MgO" in comps
-
-
-# ---------------------------------------------------------------------------
-# union  (NEW API -- will fail until implemented)
-# ---------------------------------------------------------------------------
-
-
-class TestUnion:
-    def test_union_deduplicates_identical_composition(self):
-        """Two datasets with the same composition string are deduplicated."""
-        df1 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O", "NaCl"],
-                "Ionic conductivity (S cm-1)": [1e-4, 1e-6],
-            }
-        )
-        df2 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O", "KBr"],
-                "Ionic conductivity (S cm-1)": [2e-4, 3e-5],
-            }
-        )
-        ds1 = Dataset(df1)
-        ds2 = Dataset(df2)
-        result = ds1.union(ds2)
-        assert len(result) == 3  # Li2O, NaCl, KBr
-
-    def test_union_reduces_equivalent_formulas(self):
-        """'Li2O' and 'Li4O2' reduce to the same canonical formula and should
-        be treated as duplicates."""
-        df1 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O", "NaCl"],
-                "Ionic conductivity (S cm-1)": [1e-4, 1e-6],
-            }
-        )
-        df2 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li4O2", "KBr"],
-                "Ionic conductivity (S cm-1)": [2e-4, 3e-5],
-            }
-        )
-        ds1 = Dataset(df1)
-        ds2 = Dataset(df2)
-        result = ds1.union(ds2)
-        assert len(result) == 3  # Li2O (from ds1), NaCl, KBr
-
-    def test_union_keeps_first_occurrence(self):
-        """When a composition appears in both datasets, the row from the first
-        dataset (self) is kept."""
-        df1 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O"],
-                "Ionic conductivity (S cm-1)": [1e-4],
-            }
-        )
-        df2 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O"],
-                "Ionic conductivity (S cm-1)": [9e-9],
-            }
-        )
-        ds1 = Dataset(df1)
-        ds2 = Dataset(df2)
-        result = ds1.union(ds2)
-        assert len(result) == 1
-        # The conductivity value from ds1 should be kept
-        assert result.dataframe["Ionic conductivity (S cm-1)"].iloc[0] == pytest.approx(
-            1e-4
-        )
-
-    def test_union_non_duplicates_all_preserved(self):
-        """Rows with unique compositions are all preserved."""
-        df1 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O", "NaCl"],
-                "Ionic conductivity (S cm-1)": [1e-4, 1e-6],
-            }
-        )
-        df2 = pd.DataFrame(
-            {
-                "Reduced Composition": ["KBr", "MgO"],
-                "Ionic conductivity (S cm-1)": [3e-5, 5e-7],
-            }
-        )
-        ds1 = Dataset(df1)
-        ds2 = Dataset(df2)
-        result = ds1.union(ds2)
-        assert len(result) == 4
-
-    def test_union_returns_dataset(self):
-        df1 = pd.DataFrame(
-            {
-                "Reduced Composition": ["NaCl"],
-                "Ionic conductivity (S cm-1)": [1e-6],
-            }
-        )
-        df2 = pd.DataFrame(
-            {
-                "Reduced Composition": ["KBr"],
-                "Ionic conductivity (S cm-1)": [3e-5],
-            }
-        )
-        result = Dataset(df1).union(Dataset(df2))
-        assert isinstance(result, Dataset)
-
-    def test_union_originals_unchanged(self):
-        df1 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O"],
-                "Ionic conductivity (S cm-1)": [1e-4],
-            }
-        )
-        df2 = pd.DataFrame(
-            {
-                "Reduced Composition": ["Li2O"],
-                "Ionic conductivity (S cm-1)": [2e-4],
-            }
-        )
-        ds1 = Dataset(df1)
-        ds2 = Dataset(df2)
-        _ = ds1.union(ds2)
-        assert len(ds1) == 1
-        assert len(ds2) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -833,6 +724,164 @@ class TestRemoveMatchingEntries:
         result = ds.remove_matching_entries(other)
         # Both DOIs are NaN -- no confirmed match, row should be kept
         assert len(result) == 2
+
+
+# ---------------------------------------------------------------------------
+# Attribute correctness
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# diagnose_merge
+# ---------------------------------------------------------------------------
+
+
+class TestDiagnoseMerge:
+    def test_returns_dataframe(self, sample_dataset, other_dataset):
+        report = sample_dataset.diagnose_merge(other_dataset)
+        assert isinstance(report, pd.DataFrame)
+
+    def test_contains_source_column(self, sample_dataset, other_dataset):
+        report = sample_dataset.diagnose_merge(other_dataset)
+        assert "_source" in report.columns
+
+    def test_contains_canonical_column(self, sample_dataset, other_dataset):
+        report = sample_dataset.diagnose_merge(other_dataset)
+        assert "_canonical" in report.columns
+
+    def test_contains_kept_column(self, sample_dataset, other_dataset):
+        report = sample_dataset.diagnose_merge(other_dataset)
+        assert "_kept" in report.columns
+
+    def test_only_shared_compositions_included(self):
+        """Only compositions appearing in both datasets are reported."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O", "NaCl"],
+                "Ionic conductivity (S cm-1)": [1e-4, 1e-6],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O", "KBr"],
+                "Ionic conductivity (S cm-1)": [2e-4, 3e-5],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(Dataset(df2))
+        # Only Li2O is shared; NaCl and KBr are unique to one side
+        assert set(report["_canonical"]) == {"Li2O"}
+
+    def test_both_sides_represented(self):
+        """Report contains rows from both self and other for shared comps."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O", "NaCl"],
+                "Ionic conductivity (S cm-1)": [1e-4, 1e-6],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O", "KBr"],
+                "Ionic conductivity (S cm-1)": [2e-4, 3e-5],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(Dataset(df2))
+        sources = set(report["_source"])
+        assert sources == {"self", "other"}
+
+    def test_first_occurrence_marked_kept(self):
+        """The first occurrence of each canonical formula is marked as kept."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O"],
+                "Ionic conductivity (S cm-1)": [1e-4],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O"],
+                "Ionic conductivity (S cm-1)": [2e-4],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(Dataset(df2))
+        assert len(report) == 2
+        assert report["_kept"].sum() == 1
+        # The kept row should be from self (first in concatenation order)
+        kept_row = report[report["_kept"]]
+        assert kept_row["_source"].iloc[0] == "self"
+
+    def test_equivalent_formulas_detected(self):
+        """Li2O and Li4O2 are detected as shared via canonical reduction."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O", "NaCl"],
+                "Ionic conductivity (S cm-1)": [1e-4, 1e-6],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li4O2", "KBr"],
+                "Ionic conductivity (S cm-1)": [2e-4, 3e-5],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(Dataset(df2))
+        assert len(report) == 2
+        assert set(report["_canonical"]) == {"Li2O"}
+
+    def test_no_shared_compositions_returns_empty(self):
+        """When datasets have no overlapping compositions, report is empty."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["NaCl"],
+                "Ionic conductivity (S cm-1)": [1e-6],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["KBr"],
+                "Ionic conductivity (S cm-1)": [3e-5],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(Dataset(df2))
+        assert len(report) == 0
+
+    def test_accepts_dataframe_as_other(self):
+        """diagnose_merge accepts a raw pandas DataFrame as other."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O"],
+                "Ionic conductivity (S cm-1)": [1e-4],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O"],
+                "Ionic conductivity (S cm-1)": [2e-4],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(df2)
+        assert len(report) == 2
+
+    def test_all_columns_preserved(self):
+        """Columns unique to one dataset appear in the report (with NaN
+        for the other side)."""
+        df1 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O"],
+                "Ionic conductivity (S cm-1)": [1e-4],
+                "DOI": ["10.1234/a"],
+            }
+        )
+        df2 = pd.DataFrame(
+            {
+                "Reduced Composition": ["Li2O"],
+                "Ionic conductivity (S cm-1)": [2e-4],
+                "Space group #": [225],
+            }
+        )
+        report = Dataset(df1).diagnose_merge(Dataset(df2))
+        assert "DOI" in report.columns
+        assert "Space group #" in report.columns
 
 
 # ---------------------------------------------------------------------------

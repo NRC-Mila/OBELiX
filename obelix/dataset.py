@@ -75,33 +75,20 @@ class Dataset:
         return Dataset(self.dataframe.assign(structure=structures))
 
     def __add__(self, other):
-        """Concatenate two datasets, keeping only common columns.
+        """Concatenate two datasets, deduplicating by reduced composition.
 
-        No deduplication is performed — use :meth:`union` for that.
-
-        Returns:
-            A new :class:`Dataset` with rows from both operands.
-        """
-        common_cols = [
-            c for c in self.dataframe.columns if c in other.dataframe.columns
-        ]
-        combined = pd.concat(
-            [self.dataframe[common_cols], other.dataframe[common_cols]],
-            ignore_index=True,
-        )
-        return Dataset(combined)
-
-    def union(self, other):
-        """Concatenate two datasets and deduplicate by reduced composition.
-
-        Like :meth:`__add__` but removes rows whose canonical reduced
-        formula (via pymatgen) duplicates an earlier row.  The first
-        occurrence is kept.
+        All unique columns from both datasets are retained; missing values
+        are filled with NaN where one dataset lacks a column present in the
+        other.  Rows whose canonical reduced formula (via pymatgen)
+        duplicates an earlier row are dropped; the first occurrence is kept.
 
         Returns:
             A new :class:`Dataset` with combined, deduplicated rows.
         """
-        combined = self + other
+        combined = pd.concat(
+            [self.dataframe, other.dataframe],
+            ignore_index=False,
+        )
 
         def _canonical(f):
             if pd.isna(f):
@@ -111,9 +98,71 @@ class Dataset:
             except Exception:
                 return f
 
-        canonical = combined.dataframe["Reduced Composition"].apply(_canonical)
-        deduped = combined.dataframe[~canonical.duplicated(keep="first")]
+        canonical = combined["Reduced Composition"].apply(_canonical)
+        deduped = combined[~canonical.duplicated(keep="first")]
         return Dataset(deduped)
+
+    def diagnose_merge(self, other):
+        """Produce a diagnostic report of duplicate entries between two datasets.
+
+        For each canonical reduced composition that appears in **both**
+        datasets, returns all matching rows with source labels and
+        keep/drop indicators.  This allows manual inspection of merge
+        decisions before committing to a union.
+
+        Args:
+            other: A :class:`Dataset` or :class:`~pandas.DataFrame` with
+                a ``'Reduced Composition'`` column.
+
+        Returns:
+            A :class:`~pandas.DataFrame` with all columns from both datasets
+            plus:
+
+            * ``_source`` — ``"self"`` or ``"other"``
+            * ``_canonical`` — the canonical reduced formula used for matching
+            * ``_kept`` — whether this row would survive deduplication
+              (first occurrence per canonical formula is kept)
+        """
+        if isinstance(other, pd.DataFrame):
+            other_df = other
+        else:
+            other_df = other.dataframe
+
+        self_part = self.dataframe.copy()
+        other_part = other_df.copy()
+
+        def _canonical(f):
+            if pd.isna(f):
+                return f
+            try:
+                return Composition(f).reduced_formula
+            except Exception:
+                return f
+
+        self_part["_source"] = "self"
+        other_part["_source"] = "other"
+        self_part["_canonical"] = self_part["Reduced Composition"].apply(_canonical)
+        other_part["_canonical"] = other_part["Reduced Composition"].apply(_canonical)
+
+        # Identify canonical formulas present in both datasets
+        self_formulas = set(self_part["_canonical"].dropna())
+        other_formulas = set(other_part["_canonical"].dropna())
+        shared = self_formulas & other_formulas
+
+        # Keep only rows whose canonical formula appears in both sides
+        self_matches = self_part[self_part["_canonical"].isin(shared)]
+        other_matches = other_part[other_part["_canonical"].isin(shared)]
+
+        # Combine (self first, matching __add__ concatenation order)
+        report = pd.concat(
+            [self_matches, other_matches], ignore_index=True
+        )
+        report = report.sort_values("_canonical").reset_index(drop=True)
+
+        # Mark which rows would survive dedup (first per canonical formula)
+        report["_kept"] = ~report["_canonical"].duplicated(keep="first")
+
+        return report
 
     @staticmethod
     def merge_datasets(*datasets, remove_duplicates=True):
@@ -151,7 +200,7 @@ class Dataset:
         for ds in datasets:
             dfs.append(ds.dataframe[col_order])
 
-        combined = pd.concat(dfs, ignore_index=True)
+        combined = pd.concat(dfs, ignore_index=False)
 
         if remove_duplicates:
             # Use canonical reduced_formula for dedup

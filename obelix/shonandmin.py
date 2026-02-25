@@ -249,6 +249,9 @@ class ShonAndMin(Dataset):
                     (df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)
                 ]
 
+        df.index = [f"SM_{i:04d}" for i in df.index]
+        df.index.name = "ID"
+
         super().__init__(df)
 
     def download_data(self, output_path, commit_id=None, local=False):
@@ -273,7 +276,12 @@ class ShonAndMin(Dataset):
 
     def read_data(self, data_path, no_cifs=False):
         """Reads the ShonAndMin dataset."""
-        return pd.read_csv(data_path / "sheet2.csv")
+        df = pd.read_csv(data_path / "sheet2.csv")
+        df = df.drop(
+            columns=[c for c in df.columns if c.startswith("Unnamed:")],
+            errors="ignore",
+        )
+        return df
 
     def remove_obelix(self, obelix_object):
         """Remove entries that overlap with the OBELiX dataset.

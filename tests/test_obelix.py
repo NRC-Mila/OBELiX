@@ -11,8 +11,8 @@ def test_public_OBELiX():
     assert len(obelix) == 599
     assert len(obelix.test_dataset) == 121
     assert len(obelix.train_dataset) == 478
-    assert obelix[0]["ID"] == "jqc"
-    assert obelix["jqc"]["ID"] == "jqc"
+    assert obelix[0]["ID"] == "OBX_jqc"
+    assert obelix["OBX_jqc"]["ID"] == "OBX_jqc"
 
     shutil.rmtree("tmp_rawdata", ignore_errors=True)
 
@@ -27,8 +27,8 @@ def test_dev_OBELiX():
     assert len(obelix) == 599
     assert len(obelix.test_dataset) == 121
     assert len(obelix.train_dataset) == 478
-    assert obelix[0]["ID"] == "jqc"
-    assert obelix["jqc"]["ID"] == "jqc"
+    assert obelix[0]["ID"] == "OBX_jqc"
+    assert obelix["OBX_jqc"]["ID"] == "OBX_jqc"
 
     shutil.rmtree("tmp_rawdata_dev", ignore_errors=True)
 
@@ -60,8 +60,8 @@ def test_custom_OBELiX():
     assert len(obelix) == 599
     assert len(obelix.test_dataset) == 121
     assert len(obelix.train_dataset) == 478
-    assert obelix[0]["ID"] == "jqc"
-    assert obelix["jqc"]["ID"] == "jqc"
+    assert obelix[0]["ID"] == "OBX_jqc"
+    assert obelix["OBX_jqc"]["ID"] == "OBX_jqc"
 
     shutil.rmtree("tmp_repos", ignore_errors=True)
 

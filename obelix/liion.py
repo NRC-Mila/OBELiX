@@ -86,6 +86,9 @@ class LiIon(Dataset):
                     (df["temperature"] >= temp_min) & (df["temperature"] <= temp_max)
                 ]
 
+        df.index = [f"LIION_{i:04d}" for i in df.index]
+        df.index.name = "ID"
+
         super().__init__(df)
 
     def download_data(self, output_path, commit_id=None, local=False):
@@ -148,7 +151,7 @@ class LiIon(Dataset):
 
     def read_data(self, data_path, no_cifs=False):
         """Reads the LiIon dataset."""
-        df = pd.read_csv(self.data_path / "LiIonDatabase.csv")
+        df = pd.read_csv(self.data_path / "LiIonDatabase.csv", index_col="ID")
         return df
 
     def remove_obelix(self, obelix_object):
@@ -169,5 +172,6 @@ class LiIon(Dataset):
         """
         ob_df = obelix_object.dataframe
         liion_ids = ob_df["Liion ID"].dropna().astype(int)
-        after_id = Dataset(self.dataframe.drop(index=liion_ids, errors="ignore"))
+        named_ids = [f"LIION_{i:04d}" for i in liion_ids]
+        after_id = Dataset(self.dataframe.drop(index=named_ids, errors="ignore"))
         return after_id.remove_matching_entries(obelix_object)

@@ -153,16 +153,24 @@ class TestLiIon:
 
         This works because OBELiX carries a 'Liion ID' column that maps its
         entries back to original LiIon indices.  After removal, the result's
-        index should have no intersection with those IDs.
+        index should have no intersection with those IDs (converted to the
+        LIION_ named format).
         """
         ob_liion_ids = obelix_data.dataframe["Liion ID"].dropna().astype(int).tolist()
+        named_ids = {f"LIION_{i:04d}" for i in ob_liion_ids}
         result = liion_data.remove_obelix(obelix_data)
         remaining_ids = set(result.dataframe.index)
-        overlap = remaining_ids.intersection(ob_liion_ids)
+        overlap = remaining_ids.intersection(named_ids)
         assert len(overlap) == 0, (
             f"Found {len(overlap)} Liion IDs from OBELiX still in result: "
             f"{sorted(list(overlap))[:10]}..."
         )
+
+    def test_liion_named_index(self, liion_data):
+        """LiIon dataset should have LIION_XXXX format indices."""
+        for idx in liion_data.dataframe.index:
+            assert idx.startswith("LIION_"), f"Expected LIION_ prefix, got {idx}"
+        assert liion_data.dataframe.index.name == "ID"
 
 
 # ===================================================================
@@ -209,18 +217,25 @@ class TestLaskowski:
 
         OBELiX carries a 'Laskowski ID' column that maps its entries back to
         original Laskowski indices.  After removal, the result's index should
-        have no intersection with those IDs.
+        have no intersection with those IDs (converted to the LASK_ named format).
         """
         ob_lask_ids = (
             obelix_data.dataframe["Laskowski ID"].dropna().astype(int).tolist()
         )
+        named_ids = {f"LASK_{i:04d}" for i in ob_lask_ids}
         result = laskowski_data.remove_obelix(obelix_data)
         remaining_ids = set(result.dataframe.index)
-        overlap = remaining_ids.intersection(ob_lask_ids)
+        overlap = remaining_ids.intersection(named_ids)
         assert len(overlap) == 0, (
             f"Found {len(overlap)} Laskowski IDs from OBELiX still in result: "
             f"{sorted(list(overlap))[:10]}..."
         )
+
+    def test_laskowski_named_index(self, laskowski_data):
+        """Laskowski dataset should have LASK_XXXX format indices."""
+        for idx in laskowski_data.dataframe.index:
+            assert idx.startswith("LASK_"), f"Expected LASK_ prefix, got {idx}"
+        assert laskowski_data.dataframe.index.name == "ID"
 
 
 # ===================================================================
@@ -292,6 +307,12 @@ class TestShonAndMin:
         assert isinstance(
             result, Dataset
         ), f"Expected Dataset, got {type(result).__name__}"
+
+    def test_shonandmin_named_index(self, shonandmin_data):
+        """ShonAndMin dataset should have SM_XXXX format indices."""
+        for idx in shonandmin_data.dataframe.index:
+            assert idx.startswith("SM_"), f"Expected SM_ prefix, got {idx}"
+        assert shonandmin_data.dataframe.index.name == "ID"
 
 
 # ===================================================================
@@ -376,6 +397,34 @@ class TestMcHaffie:
         with pytest.raises(NotImplementedError):
             mchaffie_data.get_cifs()
 
+    def test_mchaffie_named_index(self, mchaffie_data):
+        """McHaffie dataset should have MCH_XXXX format indices."""
+        for idx in mchaffie_data.dataframe.index:
+            assert idx.startswith("MCH_"), f"Expected MCH_ prefix, got {idx}"
+        assert mchaffie_data.dataframe.index.name == "ID"
+
+
+# ===================================================================
+# OBELiX named index tests
+# ===================================================================
+
+
+class TestOBELiXIndex:
+    """Tests for OBELiX named index (OBX_ prefix)."""
+
+    def test_obelix_named_index(self, obelix_data):
+        """OBELiX dataset should have OBX_ prefixed indices."""
+        for idx in obelix_data.dataframe.index:
+            assert idx.startswith("OBX_"), f"Expected OBX_ prefix, got {idx}"
+        assert obelix_data.dataframe.index.name == "ID"
+
+    def test_obelix_train_test_split_preserves_prefix(self, obelix_data):
+        """Train and test subsets should also have OBX_ prefixed indices."""
+        for idx in obelix_data.train_dataset.dataframe.index:
+            assert idx.startswith("OBX_"), f"Train set: expected OBX_ prefix, got {idx}"
+        for idx in obelix_data.test_dataset.dataframe.index:
+            assert idx.startswith("OBX_"), f"Test set: expected OBX_ prefix, got {idx}"
+
 
 # ===================================================================
 # Cross-dataset tests
@@ -386,28 +435,32 @@ class TestCrossDataset:
     """Tests for interactions between multiple dataset objects."""
 
     def test_dataset_addition(self, obelix_data, liion_data):
-        """The + operator on two Datasets returns a new Dataset whose length
-        equals the sum of the two input lengths."""
+        """The + operator on two Datasets returns a new Dataset with
+        deduplicated rows (by canonical reduced composition) and all
+        unique columns from both inputs."""
         combined = obelix_data + liion_data
         assert isinstance(
             combined, Dataset
         ), f"Expected Dataset from addition, got {type(combined).__name__}"
-        expected_len = len(obelix_data) + len(liion_data)
-        assert (
-            len(combined) == expected_len
-        ), f"Expected combined length {expected_len}, got {len(combined)}"
+        # __add__ deduplicates, so combined length <= sum of inputs
+        assert len(combined) <= len(obelix_data) + len(liion_data), (
+            f"Combined length ({len(combined)}) should not exceed sum "
+            f"({len(obelix_data) + len(liion_data)})"
+        )
+        assert len(combined) > 0, "Combined dataset should not be empty"
 
     def test_dataset_addition_columns(self, obelix_data, liion_data):
-        """When adding two datasets, the resulting columns should be only the
-        columns that are common to both inputs."""
+        """When adding two datasets, all unique columns from both inputs
+        are retained (missing values filled with NaN)."""
         combined = obelix_data + liion_data
         obelix_cols = set(obelix_data.dataframe.columns)
         liion_cols = set(liion_data.dataframe.columns)
-        common_cols = obelix_cols & liion_cols
+        all_cols = obelix_cols | liion_cols
         result_cols = set(combined.dataframe.columns)
-        assert (
-            result_cols == common_cols
-        ), f"Expected only common columns {common_cols}, got {result_cols}"
+        assert result_cols == all_cols, (
+            f"Expected all columns from both datasets {all_cols}, "
+            f"got {result_cols}"
+        )
 
     def test_no_self_duplicates_after_remove_obelix(self, liion_data, obelix_data):
         """After removing OBELiX entries from LiIon, no remaining LiIon entry
@@ -491,3 +544,27 @@ class TestCrossDataset:
         assert len(merged_with) < len(
             merged_without
         ), f"Expected deduplicated ({len(merged_with)}) < raw merge ({len(merged_without)})"
+
+    def test_merge_preserves_named_indices(
+        self, obelix_data, liion_data, laskowski_data, mchaffie_data
+    ):
+        """After merging datasets, the named index prefixes (OBX_, LIION_,
+        LASK_, MCH_) should be preserved, allowing row origin tracing."""
+        merged = Dataset.merge_datasets(
+            obelix_data,
+            liion_data,
+            laskowski_data,
+            mchaffie_data,
+            remove_duplicates=False,
+        )
+        prefixes = {"OBX_", "LIION_", "LASK_", "MCH_"}
+        found_prefixes = set()
+        for idx in merged.dataframe.index:
+            for p in prefixes:
+                if idx.startswith(p):
+                    found_prefixes.add(p)
+                    break
+        assert found_prefixes == prefixes, (
+            f"Expected all prefixes {prefixes} in merged index, "
+            f"found only {found_prefixes}"
+        )

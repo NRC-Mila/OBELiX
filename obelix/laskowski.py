@@ -51,6 +51,9 @@ class Laskowski(Dataset):
                 }
             )
 
+        df.index = [f"LASK_{i:04d}" for i in df.index]
+        df.index.name = "ID"
+
         super().__init__(df)
 
     def download_data(self, output_path, commit_id=None, local=False):
@@ -80,6 +83,10 @@ class Laskowski(Dataset):
     def read_data(self, data_path, no_cifs=False):
         """Loads the Laskowski dataset."""
         data = pd.read_csv(self.data_path / "laskowski_with_dois.csv")
+        data = data.drop(
+            columns=[c for c in data.columns if c.startswith("Unnamed:")],
+            errors="ignore",
+        )
         return data
 
     def remove_obelix(self, obelix_object):
@@ -100,5 +107,6 @@ class Laskowski(Dataset):
         """
         ob_df = obelix_object.dataframe
         lask_ids = ob_df["Laskowski ID"].dropna().astype(int)
-        after_id = Dataset(self.dataframe.drop(index=lask_ids, errors="ignore"))
+        named_ids = [f"LASK_{i:04d}" for i in lask_ids]
+        after_id = Dataset(self.dataframe.drop(index=named_ids, errors="ignore"))
         return after_id.remove_matching_entries(obelix_object)

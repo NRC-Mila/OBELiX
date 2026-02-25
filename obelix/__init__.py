@@ -59,12 +59,17 @@ class OBELiX(Dataset):
                 replace_text_IC, args=(unspecified_low_value,)
             )
 
+        df.index = [f"OBX_{i}" for i in df.index]
+        df.index.name = "ID"
+
         super().__init__(df)
 
         if (self.data_path / "test.csv").exists():
             test = pd.read_csv(self.data_path / "test.csv", index_col="ID")
         else:
             test = pd.read_csv(self.data_path / "test_idx.csv", index_col="ID")
+
+        test.index = [f"OBX_{i}" for i in test.index]
 
         self.train_dataset = Dataset(
             self.dataframe[~self.dataframe.index.isin(test.index)]
