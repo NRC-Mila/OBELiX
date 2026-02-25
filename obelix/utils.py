@@ -1,4 +1,3 @@
-import numpy as np
 from pymatgen.core import Composition
 
 
@@ -28,3 +27,21 @@ def replace_text_IC(cond, value=1e-15):
         except ValueError:
             print("WARNING: IC is not a float:", cond)
     return cond
+
+
+def is_same_formula(formula_string1, formula_string2):
+    """
+    Compares two formulas to determine if they represent the same composition.
+
+    Uses pymatgen's Composition class for robust comparison, handling
+    element reordering, implicit subscripts, scaled formulas (e.g. Li2O
+    vs Li4O2), and parenthetical groups (e.g. Ca(OH)2).
+
+    Returns False gracefully for invalid, empty, None, or NaN inputs.
+    """
+    try:
+        c1 = Composition(formula_string1)
+        c2 = Composition(formula_string2)
+        return c1.reduced_formula == c2.reduced_formula
+    except Exception:
+        return False

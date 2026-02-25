@@ -175,3 +175,7 @@ cython_debug/
 
 # Vim hidden files
 *.sw*
+
+.claude/
+*.csv
+obelixdata/

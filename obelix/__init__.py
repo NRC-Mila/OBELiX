@@ -8,72 +8,14 @@ import pandas as pd
 from pymatgen.core import Structure
 from tqdm import tqdm
 
+from .dataset import Dataset
+from .laskowski import Laskowski
+from .liion import LiIon
+from .mchaffie import McHaffie
+from .shonandmin import ShonAndMin
 from .utils import replace_text_IC, round_partial_occ
 
 __version__ = importlib.metadata.version("obelix-data")
-
-
-class Dataset:
-    """
-    Dataset class. This is a wrapper around a pandas DataFrame (which cannot be inhertided).
-
-    Attributes:
-        dataframe (pd.DataFrame): DataFrame containing the dataset.
-        entries (list): List of entry IDs (3 lower-case alphanumeric symbols).
-        labels (list): List of labels (columns).
-
-    Methods:
-        to_numpy(): Returns the dataset as a numpy array.
-        to_dict(): Returns the dataset as a dictionary.
-        with_cifs(): Returns a new Dataset object with only the entries that have a CIF.
-        round_partial(): Returns a new Datset where the partial occupancies of the sites in the structures are rounded to the nearest integer.
-
-    """
-
-    def __init__(self, dataframe):
-        self.dataframe = dataframe
-        self.entries = list(self.dataframe.index)
-        self.labels = list(self.dataframe.keys())
-
-    def __len__(self):
-        return len(self.dataframe)
-
-    def __getitem__(self, idx):
-
-        if type(idx) == int:
-            entry = self.dataframe.iloc[idx]
-        else:
-            entry = self.dataframe.loc[idx]
-
-        if type(entry) == pd.Series:
-            entry_dict = entry.to_dict()
-            entry_dict["ID"] = entry.name
-        else:
-            entry_dict = entry.to_dict()
-
-        return entry_dict
-
-    def __iter__(self):
-        for i in range(len(self)):
-            yield self[i]
-
-    def to_numpy(self):
-        return self.dataframe.to_numpy()
-
-    def to_dict(self):
-        return self.dataframe.to_dict()
-
-    def with_cifs(self):
-        return Dataset(self.dataframe.dropna(subset=["structure"]))
-
-    def round_partial(self):
-        structures = []
-        for i, row in self.dataframe.iterrows():
-            if row["structure"] is not None:
-                structures.append(round_partial_occ(row["structure"]))
-            else:
-                structures.append(None)
-        return Dataset(self.dataframe.assign(structure=structures))
 
 
 class OBELiX(Dataset):
@@ -89,7 +31,7 @@ class OBELiX(Dataset):
 
     def __init__(
         self,
-        data_path="./rawdata",
+        data_path="./obelixdata",
         no_cifs=False,
         commit_id=f"v{__version__}-data",
         dev=False,
@@ -117,12 +59,17 @@ class OBELiX(Dataset):
                 replace_text_IC, args=(unspecified_low_value,)
             )
 
+        df.index = [f"OBX_{i}" for i in df.index]
+        df.index.name = "ID"
+
         super().__init__(df)
 
         if (self.data_path / "test.csv").exists():
             test = pd.read_csv(self.data_path / "test.csv", index_col="ID")
         else:
             test = pd.read_csv(self.data_path / "test_idx.csv", index_col="ID")
+
+        test.index = [f"OBX_{i}" for i in test.index]
 
         self.train_dataset = Dataset(
             self.dataframe[~self.dataframe.index.isin(test.index)]
