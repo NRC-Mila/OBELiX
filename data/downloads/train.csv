@@ -72,7 +72,7 @@ a3e,Li2InHf(PO4)3,8,Li16.0In8.0Hf8.0P24.0O96.0,2.74e-08,,,Pbca,61,8.757,8.954,24
 ubi,Li2InTi(PO4)3,8,Li16.0In8.0Ti8.0P24.0O96.0,8.3e-06,,,Pbca,61,8.577,8.826,24.05,90.0,90.0,90.0,NASICON,10.1016/s0167-2738(96)00565-6,1,D1 - 407,not available,,,,,,,,335.0
 9z8,Li2InZr(PO4)3,8,Li16.0In8.0Zr8.0P24.0O96.0,8.22e-08,,,Pbca,61,8.761,8.979,24.2,90.0,90.0,90.0,NASICON,10.1016/s0167-2738(96)00565-6,1,D1 - 407,not available,,,,,,,,340.0
 nhq,Li3PS4,4,Li12.0P4.0S16.0,8.93e-07,,,Pnma,62,13.066,8.015,6.101,90.0,90.0,90.0,thio-LISICON,10.1021/ja3110895,1,D2 - 52,done,180319-ICSD,,lattice parameters not matching cif,,,180319.0,52.0,
-w7d,Li3PO4,4,Li12.0P4.0O16.0,4.2e-18,,,Pnma,62,6.1113,10.4612,4.9208,90.0,90.0,90.0,LISICON,10.1006/jssc.1995.1140,1,D2 - 70,done,79427-ICSD,,,,,79427.0,70.0,
+w7d,Li3PO4,4,Li12.0P4.0O16.0,4.2e-18,,,Pnma,62,6.1113,10.4612,4.9208,90.0,90.0,90.0,LISICON,10.1006/jssc.1995.1140,1,D2 - 70,done,79427-ICSD,,,Yes,,79427.0,70.0,
 fj5,Li6.5O8P1.5Si0.5,2,Li13.0O16.0P3.0Si1.0,4.49e-07,,,Pnma,62,10.52587,6.11525,4.97031,90.0,90.0,90.0,LISICON,10.1021/jacs.5b04444,1,D2 - 16,done,238600-ICSD; appendix,,partial occupancy corrected,,,238600.0,16.0,
 gxz,Li4Zn(PO4)2,2,Li8.0Zn2.0P4.0O16.0,<1E-10,,,Pnma,62,10.2974,6.5021,5.0011,90.0,90.0,90.0,phosphates,10.1021/acs.chemmater.7b05139,1,D2 - 38,done,,,"should be deleted, high T structure, refer the alpha phase",,,255465.0,38.0,
 tbu,Li3.5Zn0.5Ga0.5(PO4)2,2,Li7.0Zn1.0Ga1.0P4.0O16.0,<1E-10,,,Pnma,62,10.08925,6.5108,4.935878,90.0,90.0,90.0,phosphates,10.1021/acs.chemmater.7b05139,1,D2 - 38,done,appendix,,,,,,38.0,

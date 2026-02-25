@@ -7,14 +7,12 @@
 - `{train,test}_idx.csv`: Lists entry ids part of the train/test splits
 
 ## Directories
-- `./rand_cifs`: Cifs with added random noise
-- `./rand_np_cifs`: Same as ./rand_cifs with rounded partial occupancies
+- `./randomized_cifs`: Cifs with added random noise
 
 ### Private directories (removed in public repo)
 
 - `./cifs`: Original cif files
-- `./anon_cifs`: Standardized cif files (pymatgen format) --> replace with ./rand_cifs in scripts
-- `./np_cifs`: Standardized cif files with rounded partial occupancies --> replace with ./rand_np_cifs in scripts
+- `./anon_cifs`: Standardized cif files (pymatgen format) --> replace with ./randomized_cifs in scripts
 
 ## Scripts
 All scripts are in the `scripts` directory. They are meant to be run from the `data` directory.

@@ -74,6 +74,7 @@ def plot_similar(df, subset, palette = ["red", "blue"]):
     ymaxs = []
     stds = []
     stds_alt = []
+    maes_alt = []
     diffs = []
     same_comps = []
     dists = []
@@ -92,11 +93,12 @@ def plot_similar(df, subset, palette = ["red", "blue"]):
         ymaxs.append(same_comp["Ionic conductivity (S cm-1)"].max())
         stds.append(np.log10(same_comp["Ionic conductivity (S cm-1)"]).std())
         stds_alt.append(np.log10(same_comp["Ionic conductivity (S cm-1)"]) - np.log10(same_comp["Ionic conductivity (S cm-1)"]).mean())
+        maes_alt.append(np.log10(same_comp["Ionic conductivity (S cm-1)"]) - np.log10(same_comp["Ionic conductivity (S cm-1)"]).median())
 
     print("Average log standard deviation: ", np.mean(stds))
     
     print("Average log standard deviation (RMSE like): ", np.sqrt(np.mean(np.concatenate(stds_alt)**2)))
-    print("Average log difference with mean (MAE like): ", np.mean(abs(np.concatenate(stds_alt))))
+    print("Average log difference with mean (MAE like): ", np.mean(abs(np.concatenate(maes_alt))))
 
 
     plt.figure()
@@ -363,7 +365,7 @@ if __name__ == "__main__":
     test = pd.read_csv('test_idx.csv', index_col="ID")
     data["in_test"] = data.index.isin(test.index)
 
-    # # Similar entries plots
+    # Similar entries plots
     plot_similar(data, ['Composition', 'Space group number'])
 
     # Relevant quantities plots
@@ -375,7 +377,7 @@ if __name__ == "__main__":
     # Periodec table heatmap
     periodic_table_map(data)
 
-    Space group pi charts
+    # Space group pi charts
     spg_charts(data)
 
     # Stats

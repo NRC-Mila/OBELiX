@@ -1,16 +1,15 @@
 import warnings
 from pathlib import Path
 
-from parse import read_xy
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
+from parse import read_xy
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
 
 np.random.seed(0)
 
@@ -186,9 +185,23 @@ def test(model, params, x_train, y_train, test_xy, cif_only, partial):
 
 
 if __name__ == "__main__":
+    # Specify the models: either MLP or RF
+
+    # Specify whether you want to train on the subset
+    # of data for which cif are available (cif_only = True)
+    # or the whole dataset (cif_onl = False)
+
+    # Specify whether you want to train on the data as is,
+    # without changing partial occupancy values (partial = True)
+    # or round composition's partial occupancy values (partial = False)
+
     model = "MLP"
     cif_only = True
     partial = True
+
+    # For testing, specify the hparam results you get from
+    # tuning in this dictionary
+
     # params = {
     #     "activation": "relu",
     #     "batch_size": 16,
@@ -200,8 +213,14 @@ if __name__ == "__main__":
     #     "n_iter_no_change": 100,
     #     "solver": "adam",
     # }
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         x_train, y_train, test_xy = process_data(cif_only=cif_only, partial=partial)
+
+        # Depending on whether you want to run hyper parameter tuning
+        # or test a model with specifc hparams, uncomment either
+        # model_tune dunction or test fucnction
+
         model_tune(model, x_train, y_train, cif_only=cif_only, partial=partial)
         # test(model, params, x_train, y_train, test_xy, cif_only, partial)
