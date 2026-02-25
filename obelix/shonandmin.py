@@ -1,5 +1,4 @@
-"""The Shon and Min dataset contains many particulars that we manually normalize here to be cross-compatible with OBELiX
-"""
+"""The Shon and Min dataset contains many particulars that we manually normalize here to be cross-compatible with OBELiX"""
 
 import re
 from pathlib import Path
