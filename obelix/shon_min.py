@@ -136,5 +136,15 @@ def clean_shon_min(df):
             continue
 
     df_clean = df.drop(index=to_drop)
+
+    # Replace original string column with cleaned numeric values (S/cm)
+    # and drop intermediate columns
+    df_clean = df_clean.copy()
+    df_clean["Ionic Conductivity"] = df_clean["Ionic Conductivity Numeric (S/cm)"]
+    df_clean = df_clean.drop(
+        columns=["Ionic Conductivity Numeric", "Ionic Conductivity Numeric (S/cm)"],
+        errors="ignore",
+    )
+
     return df_clean
 
