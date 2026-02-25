@@ -1,15 +1,18 @@
 import pandas as pd
-import urllib.request
-import tarfile
-from pathlib import Path
-from pymatgen.core import Structure
-import warnings
-from tqdm import tqdm
-import importlib 
-import re
-import numpy as np
 
-from obelix.utils import round_partial_occ, replace_text_IC, is_same_formula
+from pymatgen.core import Composition
+
+from .utils import round_partial_occ
+
+
+# Columns that merge_datasets will keep when present in ALL input datasets.
+_RELEVANT_COLUMNS = [
+    'Reduced Composition',
+    'Ionic conductivity (S cm-1)',
+    'Space group #',
+    'DOI',
+]
+
 
 class Dataset():
     '''
@@ -27,13 +30,12 @@ class Dataset():
         round_partial(): Returns a new Datset where the partial occupancies of the sites in the structures are rounded to the nearest integer.
 
     '''
-    
-    def __init__(self, dataframe, *datasets):
+
+    def __init__(self, dataframe):
         self.dataframe = dataframe
         self.entries = list(self.dataframe.index)
         self.labels = list(self.dataframe.keys())
-        self.datasets = datasets
-        
+
     def __len__(self):
         return len(self.dataframe)
 
@@ -49,13 +51,13 @@ class Dataset():
             entry_dict["ID"] = entry.name
         else:
             entry_dict = entry.to_dict()
-        
+
         return entry_dict
 
     def __iter__(self):
         for i in range(len(self)):
             yield self[i]
-    
+
     def to_numpy(self):
         return self.dataframe.to_numpy()
 
@@ -74,60 +76,117 @@ class Dataset():
                 structures.append(None)
         return Dataset(self.dataframe.assign(structure=structures))
 
+    @staticmethod
     def merge_datasets(*datasets, remove_duplicates=True):
+        """Merge multiple Dataset objects into a single Dataset.
+
+        Keeps only columns from _RELEVANT_COLUMNS that are present in ALL
+        input datasets. If remove_duplicates is True, deduplicates by
+        canonical reduced composition (using pymatgen).
+
+        Args:
+            *datasets: Dataset objects to merge.
+            remove_duplicates: If True, drop rows with duplicate reduced
+                compositions (keeping the first occurrence). Default: True.
+
+        Returns:
+            A new Dataset containing the merged rows.
+        """
+        # Find columns present in ALL datasets, restricted to the relevant set
+        common_cols = None
+        for ds in datasets:
+            ds_cols = set(ds.dataframe.columns)
+            relevant = {c for c in _RELEVANT_COLUMNS if c in ds_cols}
+            if common_cols is None:
+                common_cols = relevant
+            else:
+                common_cols = common_cols & relevant
+
+        if common_cols is None:
+            common_cols = set()
+
+        # Always keep at least composition and conductivity
+        col_order = [c for c in _RELEVANT_COLUMNS if c in common_cols]
+
         dfs = []
         for ds in datasets:
-        # Keep only columns with no missing values in that dataset
-            df_clean = ds.dataframe.dropna(axis=1)
-            dfs.append(df_clean)
+            dfs.append(ds.dataframe[col_order])
 
         combined = pd.concat(dfs, ignore_index=True)
 
         if remove_duplicates:
-            combined = combined.drop_duplicates(subset = ['Reduced Composition', 'Ionic conductivity (S cm-1)'])
+            # Use canonical reduced_formula for dedup
+            canonical = combined['Reduced Composition'].apply(
+                lambda f: Composition(f).reduced_formula
+                if pd.notna(f) else f
+            )
+            combined = combined[~canonical.duplicated(keep='first')]
 
-        return combined
+        return Dataset(combined)
 
     def remove_matching_entries(self, other):
-        """
-        Removes entries from the current dataset that are present in another dataset,
-        comparing by 'Reduced Composition' (chemical equivalence) and DOI.
-        If a composition matches and at least one of the matching rows in either dataset has the same DOI,
-        all such rows in the current dataset are removed — even if the DOI is missing on some duplicates.
+        """Remove entries that are duplicated in another dataset.
+
+        Compares by reduced composition (using pymatgen for chemical
+        equivalence) and DOI.  A row in ``self`` is removed when:
+
+        * Its reduced composition matches a composition in *other*, **and**
+        * Its DOI matches a DOI in *other* for that composition (both
+          non-NaN), **or** its DOI is NaN while *other* has at least one
+          non-NaN DOI for that composition.
+
+        Rows where the composition matches but DOIs differ (both non-NaN)
+        are kept — they represent distinct measurements from different
+        sources.
 
         Parameters:
-        - other: An object with a 'dataframe' attribute or a pandas DataFrame containing 'Reduced Composition' and 'DOI' columns.
+            other: A :class:`Dataset` or :class:`~pandas.DataFrame` with
+                ``'Reduced Composition'`` and ``'DOI'`` columns.
 
         Returns:
-        - The updated DataFrame with matching entries removed.
+            A new :class:`Dataset` with matching entries removed.  The
+            original dataset is **not** mutated.
         """
-        
         if isinstance(other, pd.DataFrame):
             other_df = other
         else:
             other_df = other.dataframe
 
-        # Get list of index positions to remove
+        # Build lookup: canonical reduced_formula → set of non-NaN DOIs
+        other_lookup: dict[str, set[str]] = {}
+        for _, row in other_df.iterrows():
+            comp = row.get('Reduced Composition')
+            doi = row.get('DOI')
+            try:
+                key = Composition(comp).reduced_formula
+            except Exception:
+                continue
+            if key not in other_lookup:
+                other_lookup[key] = set()
+            if pd.notna(doi):
+                other_lookup[key].add(doi)
+
+        # Determine which rows in self to remove
         indices_to_remove = set()
-
         for i, self_row in self.dataframe.iterrows():
-            self_comp = self_row['Reduced Composition']
+            self_comp = self_row.get('Reduced Composition')
             self_doi = self_row.get('DOI')
+            try:
+                self_key = Composition(self_comp).reduced_formula
+            except Exception:
+                continue
 
-            for _, other_row in other_df.iterrows():
-                other_comp = other_row['Reduced Composition']
-                other_doi = other_row.get('DOI')
+            if self_key not in other_lookup:
+                continue
 
-                if is_same_formula(self_comp, other_comp):
-                    if (self_doi == other_doi) and pd.notna(self_doi) and pd.notna(other_doi):
-                        for j, test_row in self.dataframe.iterrows():
-                            if is_same_formula(test_row['Reduced Composition'], self_comp):
-                                test_doi = test_row.get('DOI')
-                                if (test_doi == self_doi) or pd.isna(test_doi):
-                                    indices_to_remove.add(j)
-                        break
-
-        self.dataframe.loc[list(indices_to_remove)].to_csv('matching_entries.csv', index=False)
+            other_dois = other_lookup[self_key]
+            if pd.notna(self_doi) and self_doi in other_dois:
+                # Exact DOI match — confirmed duplicate
+                indices_to_remove.add(i)
+            elif pd.isna(self_doi) and len(other_dois) > 0:
+                # Self has no DOI but other has a confirmed source —
+                # cannot verify this is a distinct measurement
+                indices_to_remove.add(i)
 
         new_dataframe = self.dataframe.drop(index=indices_to_remove)
         return Dataset(new_dataframe)
