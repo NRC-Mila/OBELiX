@@ -78,7 +78,7 @@ class Laskowski(Dataset):
             df.to_csv(output_path / "laskowski_with_dois.csv", index=False)
 
     def read_data(self, data_path, no_cifs=False):
-        """Reads the Laskowski dataset."""
+        """Loads the Laskowski dataset."""
         data = pd.read_csv(self.data_path / "laskowski_with_dois.csv")
         return data
 
