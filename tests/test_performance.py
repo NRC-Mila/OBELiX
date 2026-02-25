@@ -7,10 +7,10 @@ time limits.  They exist to catch algorithmic regressions -- for example,
 an O(n^3) dedup loop that used to complete in seconds ballooning to minutes
 after a dataset grows.
 
-All tests in this module are marked ``@pytest.mark.slow`` so they can be
-excluded from fast CI runs with::
+All tests in this module are marked ``@pytest.mark.dev`` so they are
+automatically skipped unless the ``--rundev`` flag is passed::
 
-    pytest -m "not slow"
+    pytest --rundev
 
 Note: Some tests exercise methods that have not yet been implemented
 (``Laskowski.remove_obelix`` and ``Dataset.union``).  These tests will fail
@@ -59,7 +59,7 @@ def shonandmin_data():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_remove_matching_entries_performance(obelix_data):
     """Verify that remove_matching_entries completes in under 30 seconds.
 
@@ -88,7 +88,7 @@ def test_remove_matching_entries_performance(obelix_data):
     ), "Expected some entries to be removed, but output length equals input length"
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_remove_obelix_liion_performance(obelix_data):
     """Verify that LiIon.remove_obelix completes in under 5 seconds.
 
@@ -111,7 +111,7 @@ def test_remove_obelix_liion_performance(obelix_data):
     ), "Expected some entries to be removed via index drop"
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_remove_obelix_laskowski_performance(obelix_data):
     """Verify that Laskowski.remove_obelix completes in under 5 seconds.
 
@@ -132,7 +132,7 @@ def test_remove_obelix_laskowski_performance(obelix_data):
     )
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_merge_datasets_performance(
     obelix_data, liion_data, laskowski_data, shonandmin_data
 ):
@@ -156,7 +156,7 @@ def test_merge_datasets_performance(
     assert len(result) > 0, "Merged dataset should not be empty"
 
 
-@pytest.mark.slow
+@pytest.mark.dev
 def test_union_performance():
     """Verify that Dataset.union completes in under 15 seconds.
 
